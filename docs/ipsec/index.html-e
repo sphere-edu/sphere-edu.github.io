@@ -1,0 +1,122 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Prevention: Setting up IPSec</title>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>Setting up IPSec</h1>
+<div class="author">Created by: Sean D. Turner<br>
+  Modified by: Jelena Mirkovic, USC/ISI, sunshine@isi.edu
+</div>
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+
+<li><a href="#intro">Introduction</a>
+
+<li><a href="#reading">Required background reading</a>
+
+<li><a href="#assignment">Assignment Instructions</a>
+<ol>
+<li><a href="#setup">Setup</a>
+<li><a href="#tasks">Tasks</a>
+
+<ol type="1">
+    <li><a href=#traffic>Intercepting Traffic</a></li>
+    <li><a href=#tunnel>Setting Up the Tunnel</a></li>
+</ol>
+</ol>
+
+<li><a href="#submission">Submission Instructions</a>
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+<p>This exercise teaches installation, configuration, and testing of IPSec.</p>
+    
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+IPSec is the protocol that helps protect end-to-end communication from sniffing and inferrences by routers in between the two communicating endpoints. It does so via encapsulation and encryption of end-to-end traffic. Encapsulation means that traffic appears as if it is travelling between IPSec gateways instead of between endpoints. Encryption ensures that traffic cannot be read by routers in between the gateways.
+</p>
+
+<p>
+  In this exercise we will work on the topology shown below:<p>
+  <img src="topo.png">
+
+<p>Communicating endpoints <tt>alice</tt> and <tt>bob</tt> would like to communicate securely. Their gateways <tt>sun</tt> and <tt>moon</tt> will facilitate this by establishing an IPsec tunnel to encapsulate and encrypt traffic between their networks.
+  
+<span class="anchor" id="reading"></span> 
+<h2>Required background reading</h2>
+
+
+
+We will use <tt>strongswan</tt> to implement IPSec. You should refer to <a href="https://docs.strongswan.org/docs/5.9/index.html">strongswan</a> documentation to complete the tasks.
+  
+<span class="anchor" id="assignment"></span> 
+<h2>Assignment Instructions</h2>
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>ipsec</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your nodes. <p /></ol></ol><p />
+
+
+</div>
+
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>    
+    
+<span class="anchor" id="traffic"></span>
+<div class="level3">
+  <h4>Intercepting Traffic</h4>
+  <p>Our objective is to establish an IPSec tunnel between <tt>sun</tt> and <tt>moon</tt>. Before we do so we will establish what happens in absence of IPSec.
+    
+  <p>In this exercise <tt>bob</tt> runs anonymous FTP server and <tt>alice</tt> wants to access it. On <tt>router</tt> node, identify the interface with IP address 3.5.7.17 using <tt>ifconfig</tt>, e.g., ethX. Then run:
+    <pre>
+      sudo tcpdump -i ethX -nn -s 0 -X
+    </pre>
+
+    On <tt>alice</tt> type:
+    <pre>
+      ftp bob
+      ...enter "anonymous" as username
+      ...enter any string as password
+      get README
+      bye
+      cat README
+    </pre>
+   <p>Now check the output of the <tt>tcpdump</tt> command on <tt>router</tt>. Did the router learn the contents of the README file?
+   </div>
+<span class="anchor" id="tunnel"></span>
+<div class="level3">
+<h4>Setting Up the Tunnel</h4>
+<p>Follow the instructions given at <a href="https://docs.strongswan.org/docs/5.9/config/quickstart.html">strogswan quickstart</a> to set up IPSec. Be careful to replace the IP addresses in the example with the IP addresses we use in our topology.
+
+<p>Before you can fully complete the setup, you will need to generate and store some private and public keys and certificates. Follow the instructions at <a href="https://docs.strongswan.org/docs/5.9/pki/pkiQuickstart.html">PKI quickstart</a> to set up those. Make sure that you use the same strongswan private key on both <tt>sun</tt> and <tt>moon</tt> in the process.
+  
+After you complete the setup run the <tt>tcpdump</tt> again on <tt>router</tt> and issue the same commands on <tt>alice</tt> as before. Can the router see the traffic now?
+</div>
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+Submit the tcpdump output before and after you have set up the tunnel. You can write the output into files by adding "-w before" or "-w after" to <tt>tcpdump</tt> commands. Then place both files into the same folder and create the tar-zipped file out of that folder. Submit that file to your instructor.
+
+
+</div>
+</body></html>

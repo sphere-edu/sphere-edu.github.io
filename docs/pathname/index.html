@@ -1,0 +1,595 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Exploits: Pathname Attacks</title>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>Exploits: Pathname Attacks</h1>
+<div class="author">Created by: Peter A. H. Peterson and Dr. Peter Reiher, UCLA {pahp, reiher}@ucla.edu<br>
+</div>
+
+<!--
+<div class="due-date">Put your due date here if you are including the exercise in your class.</div>
+-->
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+<li><a href="#reading">Required Reading</a>
+<ol>
+	<li><a href="#ddesc">Pathname Exploits</a>
+	<li><a href="#dread">Pathname Exploits (Additional Reading)</a>
+	<li><a href="#tools">Software Tools</a>
+	<ol>
+		<li><a href="#diffpatch">diff and patch</a>
+		<li><a href="#rfc">HTTP and CGI Protocols</a>
+	</ol>
+</ol>
+<li><a href="#intro">Introduction</a>
+<li><a href="#assignment">Assignment Instructions</a>
+<ol>
+<li><a href="#setup">Setup</a>
+<li><a href="#tasks">Tasks</a>
+<li><a href="#dstory">Pathname Attack Scenario</a>
+<li><a href="#dassign">Pathname Attack Tasks</a>
+<li><a href="#glitches">What Can Go Wrong</a>
+</ol>
+<li><a href="#extra">Extra Credit</a>
+
+<li><a href="#submission">Submission Instructions</a>
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+<p />
+
+<p />The purpose of this exercise is to introduce you to pathname attacks and give you a first-hand opportunity to see them in source code, exploit them, and patch them. After successfully completing this exercise, you will be able to: 
+
+<ol type="1">
+<li><p />Accurately identify and describe Pathname attacks</li>
+<li><p />Identify Pathname Attacks in a CGI script written in Perl</li>
+<li><p />Understand how they can lead to unauthorized access to private data</li>
+<li><p />Be able to repair these types of security holes</li>
+<li><p />Author memos describing in detail your findings and code changes.</li> 
+</ol>
+
+You should be familiar with the Unix command line, POSIX permissions, and basic programming. The exercise will use Perl and HTTP, but at introductory levels.
+
+<span class="anchor" id="reading"></span> 
+<h2>Required Reading</h2>
+
+<p /><span class="anchor" id="ddesc"></span> 
+<h3>Pathname Attacks</h3>
+
+<p>A file's "pathname" determines its location in the filesystem hierarchy. An "absolute path" includes the entire path from the root of the filesystem, such as <tt>/var/log/apache2/access.log</tt>. <i>Relative paths</i> are specified with respect to a particular directory. For example, if the current working directory of a user (or a process) is <tt>/var/log</tt>, then the relative path to the Apache access log would be <tt>apache2/access.log</tt> -- <tt>/var/log</tt> is not specified at the beginning because it is the current working directory.</p>
+
+<p>Much of pathname security revolves around making sure that an application is only able to access files in specific locations. For example, the Apache web server typically only accesses files in its "DocumentRoot", which is often <tt>/var/www</tt>. That way, Apache won't even attempt to honor a request for <tt>/etc/shadow</tt>. More generally, we can imagine wanting to constrain an application to a specific directory, like <tt>/jail</tt> or a set of directories listed in a configuration file. While security-conscious applications will have controls to limit accesses to those directories, many programs recklessly assume that input from users is valid. Pathname attacks involve accessing files that should be restricted by finding uncontrolled opportunities for exploits or circumventing controls when they exist.</p>
+
+<p>If the server or application runs as root (e.g., if it is set SUID-root) and can "escape" the jail, then potentially any file on the system could be read, including <tt>/etc/shadow</tt>. However, even if the server/application doesn't run as root, it's likely that there are readable files on the system that, while readable to every local user, shouldn't be readable to everyone on Earth with a web browser (e.g., <tt>/etc/passwd</tt>).</p>
+
+<p />Many applications simply perform no validation of pathnames at all, so an attacker can often gain illegitimate access by finding a way to input a malicious path. However, because there are essentially an infinite number of ways to express the same pathname, attackers can often circumvent simplistic controls, such as checking that a path begins in a certain way (e.g., <tt>/jail</tt>). Here are two common approaches:
+
+
+<h4>Special Pathname Tokens: slash, dot, and dot dot</h4>
+
+<p />There are three special pathname tokens in UNIX. First, a leading <tt>/</tt> (called "slash" character indicates the root of a) filesystem. A pathname that starts with <tt>/</tt>, such as <tt>/var/log/apache2/access.log</tt> is, by definition, an absolute path. The other two special tokens are relative to the current working directory. A single <tt>.</tt> (called "dot") indicates the current working directory, while <tt>..</tt> (called "dot dot") indicates the parent directory of the current working directory. Accordingly, the command
+
+<pre>
+$ cp /tmp/foo.txt .
+</pre>
+
+<p />... means "copy the file <tt>/tmp/foo.txt</tt> to <i>here</i> (where it will be named <tt>foo.txt</tt>)". 
+
+<p />The "dot dot" token is often used in the command
+
+<pre>
+$ cd ..
+</pre>
+<p />
+
+... which means "change directory to the parent directory of the current working directory. <p />
+
+However, both <tt>.</tt> and <tt>..</tt> can be used like any pathname element. This can lead to some odd pathnames. For example, the following paths all refer to the same file:<p />
+
+<tt>
+/var/log/apache2/access.log<br />
+/var/log/apache2/./././access.log<br />
+/var/log/apache2/../apache2/access.log<br />
+/var/log/apache2/../../../var/log/apache2/access.log<br />
+/var/../var/log/../log/apache2/../apache2/access.log<br />
+</tt>
+
+<p>This is because <tt>.</tt> does not change the working directory as the pathname is parsed, and <tt>..</tt> ascends to the parent of the current working directory (each <tt>..</tt> "un-does" the effect of the previous directory descent.</p>
+
+<p>These special tokens are relevant for pathname security, because they can allow an attacker to "get out of jail" if the application does not completely mediate the paths that are allowed. For example, suppose the application requires that every file path begins with "<tt>/jail</tt>. The thought is that only files like <tt>/jail/file1</tt> and <tt>/jail/file2</tt> would be accessible. However, the file <tt>/jail/../etc/passwd</tt> is a pathname that <i>starts</i> with <tt>/jail</tt> but does not refer to a file within <tt>/jail</tt>! The security control has been circumvented!
+
+<h4>Hard links and Symbolic Links</h4>
+
+<p>Another property of many filesystems is something called a file <i>link</i>. A link is a directory entry that points to another file. There are two types of file links in POSIX; <i>hard links</i> and <i>symbolic</i> (or <i>soft</i>) links. <p>Links are created using the utility <tt>ln</tt> with the following syntax:</p>
+
+<pre>
+$ ln -s target_file link_file 			# create a symbolic link
+</pre>
+
+<pre>
+$ sudo ln target_file link_file  		# create a hard link (requires root access)
+</pre>
+
+<p>Links allow more than one file name to refer (or "point") to the same data, although the mechanism for hard and soft links differs. For hard links, the link points to a fundamental data object on the  disk (called an <i>inode</i>). An inode is not a filename, but the disk record that a file points to. Hard links can be removed like regular files -- in fact, they <i>are</i> regular files (see infobox below). When the last hard link to a file (i.e., inode) is removed, the inode itself is freed and the disk space can be reused (i.e., the file is "deleted").</p>
+
+<p>The following output helps demonstrate the behavior of hard links. First, we create the file <tt>foo</tt> containing the word "HI!":
+
+<pre>
+$ echo "HI!" > foo
+$ cat foo
+HI!
+</pre>
+
+<p>Now, we create a hard link to <tt>foo</tt>. Note the requirement of sudo.</p>
+
+
+<pre>
+$ sudo ln foo hardlink-to-foo
+[sudo] password for pedro: 
+</pre>
+
+<p>After creating the hard link, we can read it just like <tt>foo</tt>:</p>
+
+<pre>
+$ cat hardlink-to-foo 
+HI!
+</pre>
+
+<p>Listing the files, we see that <tt>foo</tt> and <tt>hardlink-to-foo</tt> are the same size:</p>
+
+
+<pre>
+$ ls -al
+total 24
+drwxr-xr-x 2 pedro pedro  4096 Mar 20 12:06 .
+drwxrwxrwt 8 root  root  12288 Mar 20 12:06 ..
+-rw-r--r-- 2 pedro pedro     4 Mar 20 12:06 foo
+-rw-r--r-- 2 pedro pedro     4 Mar 20 12:06 hardlink-to-foo
+</pre>
+
+<p>In fact, if we tell <tt>ls</tt> to show us the inode (using the <tt>-i</tt> switch), we see that both files point to the same inode!</p>
+
+
+<pre>
+$ ls -il
+total 8
+<b>7079805</b> -rw-r--r-- 2 pedro pedro 4 Mar 20 12:06 foo
+<b>7079805</b> -rw-r--r-- 2 pedro pedro 4 Mar 20 12:06 hardlink-to-foo
+</pre>
+
+<p>Removing <tt>foo</tt> does not affect <tt>hardlink-to-foo</tt>, because <tt>hardlink-to-foo</tt> is a normal file.
+
+
+<pre>
+$ rm foo
+$ cat hardlink-to-foo 
+HI!
+</pre>
+
+<p>Finally, removing <tt>hardlink-to-foo</tt> removes the file.</p>
+
+
+<pre>
+$ rm hardlink-to-foo 
+$ ls -al
+total 16
+drwxr-xr-x 2 pedro pedro  4096 Mar 20 12:07 .
+drwxrwxrwt 8 root  root  12288 Mar 20 12:07 ..
+</pre>
+
+
+<div class="infobox">
+	<p>
+	<img src="idea.png" />
+	In reality, every regular file is a hard link to an inode. Each inode has a count of the number of links that currently point to it. Thus, the typical file as seen by a user is a hard link to an inode with a link count of 1 (i.e., one hard link -- one filename). However, we tend to think and speak of "hard links" as being <i>additional</i> links to a single inode. The fact that every file is actually a hard link is ultimately the reason why removing the last hard link to a file results in the deletion of the file.
+	</p>
+</div>
+
+<p>In contrast, soft links -- more commonly called symbolic links or symlinks -- point not to specific inodes on disk, but rather to a <i>specific filename</i>. If the filename pointed to by a symlink is deleted, the symlink is not deleted. Instead, it is "broken" -- attempting to access the symlink will result in a "No such file or directory" error, not because the symlink is gone, but because the target file is gone.</p>
+
+<p>The following output helps demonstrate the behaviors of symlinks:</p>
+
+<p>First, create <tt>foo</tt> and make a symlink to <tt>foo</tt>:
+
+<pre>
+$ echo "HI!" > foo
+$ ln -s foo symlink-to-foo
+</pre>
+
+<p>List the files. What do symlinks look like?</p>
+
+<pre>
+$ ls -al
+total 20
+drwxr-xr-x 2 pedro pedro  4096 Mar 20 11:28 .
+drwxrwxrwt 9 root  root  12288 Mar 20 11:28 ..
+-rw-r--r-- 1 pedro pedro     4 Mar 20 11:28 foo
+lrwxrwxrwx 1 pedro pedro     3 Mar 20 11:28 symlink-to-foo -> foo
+</pre>
+
+<p>Notice that <tt>symlink-to-foo</tt> is shown as "pointing" (<tt>--&gt;</tt>) to <tt>foo</tt>. Also note that the symlink's permission block starts with <tt>l</tt> -- the special marker identifying a symbolic link.</p>
+
+<p>What if we list the inodes of these file, like we did for hard links?</p>
+
+
+<pre>
+$ ls -il
+total 4
+<b>7079805</b> -rw-r--r-- 1 pedro pedro 4 Mar 20 12:15 foo
+<b>7080435</b> lrwxrwxrwx 1 pedro pedro 3 Mar 20 12:15 symlink-to-foo -> foo
+</pre>
+
+<p>As expected, <tt>foo</tt> and <tt>symlink-to-foo</tt> do not point to the same inode, but are completely different disk resources.</p>
+
+<p>What happens when we read <tt>foo</tt> or its symlink?</tt></p>
+
+<pre>
+$ cat foo
+HI!
+$ cat symlink-to-foo 
+HI!
+</pre>
+
+<p>We see that both files have the same content. What happens if we remove <tt>foo</tt> and try to read the symlink?</p>
+
+<pre>
+$ rm foo
+$ cat symlink-to-foo 
+cat: symlink-to-foo: No such file or directory
+</pre>
+
+<p>We see that the symlink no longer works. However, it's unclear if <tt>foo</tt> is gone or if it is <tt>symlink-to-foo</tt> that is gone. Which is it?</p>
+
+<pre>
+$ ls -al
+total 16
+drwxr-xr-x 2 pedro pedro  4096 Mar 20 11:28 .
+drwxrwxrwt 9 root  root  12288 Mar 20 11:28 ..
+lrwxrwxrwx 1 pedro pedro     3 Mar 20 11:28 symlink-to-foo -> foo
+</pre>
+
+<p>Here we see that, although <tt>foo</tt> has been removed, <tt>symlink-to-foo</tt> lives on, but the link is "broken" -- it's target is no longer present.</p>
+
+<p>Links (both hard and soft) complicate filesystems because they allow loops to exist in what would otherwise be free of cycles. This is because in POSIX, directories are files, and links can point to files. If a link in a subdirectory points to one of its parent (or ancestor) directories, a loop is created. For example:</p>
+
+<pre>
+$ mkdir child
+$ cd child
+$ ln -s .. child		# make a symlink pointing to '..' named 'child'
+$ ls -al 
+total 8
+drwxr-xr-x 2 pedro pedro 4096 Mar 20 12:18 .
+drwxr-xr-x 3 pedro pedro 4096 Mar 20 12:18 ..
+lrwxrwxrwx 1 pedro pedro    2 Mar 20 12:18 child -> ..
+$ ls child
+child
+$ ls child/child/child
+child
+</pre>
+
+<p>As a result, applications must be able to cope with the possibility of cycles in directory structures.</p>
+
+<p>Hard links and soft links are relevant to pathname security because, like the "parent directory" token <tt>..</tt>, people can use them to subvert security controls. For example, consider a program that runs inside the directory <tt>/jail</tt> and is only allowed to access files whose paths begin with "<tt>/jail/...</tt>", such as <tt>/jail/file1</tt> or <tt>/jail/file2</tt>. A user who has write access to <tt>/jail</tt> could create a symbolic link like so:</p>
+
+<pre>
+$ cd jail
+$ ls -al
+total 8
+drwxr-xr-x 2 pedro pedro 4096 Mar 20 12:26 .
+drwxr-xr-x 3 pedro pedro 4096 Mar 20 12:26 ..
+-rw-r--r-- 1 pedro pedro    0 Mar 20 12:26 file1
+-rw-r--r-- 1 pedro pedro    0 Mar 20 12:26 file2
+$ ln -s /etc/passwd file3
+$ ls -al
+total 8
+drwxr-xr-x 2 pedro pedro 4096 Mar 20 12:26 .
+drwxr-xr-x 3 pedro pedro 4096 Mar 20 12:26 ..
+-rw-r--r-- 1 pedro pedro    0 Mar 20 12:26 file1
+-rw-r--r-- 1 pedro pedro    0 Mar 20 12:26 file2
+lrwxrwxrwx 1 pedro pedro   11 Mar 20 12:26 file3 -> /etc/passwd
+</pre>
+
+<p>Now, <tt>/jail/file3</tt> exists inside <tt>/jail</tt> -- passing the security control -- but points to a resource <i>outside</i> of jail! Strictly speaking, the security control has been obeyed, yet the effect circumvents the control's intent! This attack requires an insider capable of creating symlinks.</p>
+
+<!-- <h4>Double Encoding</h4>
+
+<p />Finally, there are multiple ways to encode URLs. While a "<tt>..</tt>" in a URL can be completely benign, it can also be evidence of an attack. One way to hide this from a validation mechanism is to use alternative encodings. Dot-dot encoded in HTML hexadecimal notation is "%2E%2E". Web servers will convert this encoding to the local character set, so <tt>/jail/%2E%2E/etc/passwd</tt> will be converted to <tt>/jail/..etc/passwd</tt>. However, this sequence can be <i>double encoded</i> by encoding the "%" character in "%2E%2E" using hexadecimal notaion. Percent (%) is encoded as <tt>%25</tt>, so the double encoding is "%252E%252E". When the server converts the hexadecimal to the local encoding, the result will be converted back to "%2E%2E". If this result is used again in another web request, it will be converted to <tt>..</tt> and might effect some malicious purpose. OWASP has a good article on <a href='https://www.owasp.org/index.php/Double_Encoding'>pathname encoding issues</a>. -->
+
+<h4>Pathname Canonicalization</h4>
+
+<p />Because of these (and potentially other) pathname attacks, programs must treat all pathnames provided to the application as suspect and potentially malicious. Once received, applications must therefore perform <strong>input validation</strong> on pathnames, making certain that they are capable of properly validating <em>all potential pathnames they could</em> receive, rather than assuming any arbitrary limit on the form or content of pathnames -- otherwise an attacker only needs to find the one pathname attack that isn't defended.</p>
+
+<p>The way to do this is through something called <i>pathname canonicalization</i>. Canonicalization takes any pathname provided and converts it to it's simplest or "truest" representation. For example, the canonical version of the path <tt>/jail/bar/baz/../../../somefile.txt</tt> is <tt>/somefile.txt</tt> and when the symlink <tt>/jail/somefile.txt</tt> (pointing to <tt>/etc/passwd</tt>) is canonicalized, it will be simply <tt>/etc/passwd</tt>. Perl has a canonicalization module called <tt>abs_path</tt> that takes as input an arbitrary path and returns the canonicalized path, which can be checked against whatever restrictions the application requires. By first canonicalizing the pathname and <i>then</i> checking it against whatever restrictions are necessary, you can be more confident that your application will be completely mediating the access as it should. This is another example of enforcing the <b>principle of least privilege</b>.</p>
+
+<p>To use <tt>abs_path()</tt>, Perl programs must import the function from the Cwd library like so:</p>
+
+<pre>
+use Cwd 'abs_path';
+</pre>
+
+<p>Then, they can use the function <tt>abs_path()</tt> to canonicalize input. After these two lines of Perl:</p>
+
+<pre>
+$badpath = "/jail/../etc/passwd";
+$realpath = abs_path($badpath);
+</pre>
+
+<p>... the variable <tt>$realpath</tt> would contain the string "/etc/passwd". This canonicalized pathname could then be checked against a list of known good paths (or be validated in some other way).</p>
+
+<div class="infobox">
+	<p>
+	<img src="idea.png" />
+	<tt>abs_path()</tt> is Perl's method for canonicalizing pathnames -- the function and semantics for doing this in other languages may differ!
+	</p>
+</div>
+
+<p /><span class="anchor" id="dread"></span> 
+<p />
+
+<h4>Additional Reading</h4>
+
+
+<ul>
+<li><p /><a class="http" href="http://en.wikipedia.org/wiki/Directory_traversal">Directory Traversal</a> at Wikipedia </li>
+<li><p /><a class="http" href="http://en.wikipedia.org/wiki/Canonicalization">Canonicalization</a> at Wikipedia </li>
+<li><p />Old GNU tar directory traversal <a class="http" href="http://www.securityfocus.com/bid/21235/info">vulnerability report</a> </li>
+<li><p /><a class="http" href="http://www.garshol.priv.no/download/text/http-tut.html">A nice article on hand-crafting HTTP requests and CGI parameters</a></li>
+</ul>
+
+
+<span class="anchor" id="tools"></span>
+<h3>Software Tools</h3>
+
+<p>This section will describe some tools you may need to complete this exercise. 
+
+<p />
+<span class="anchor" id="wget"></span> 
+<h4>wget: non-interactive command-line network client</h4>
+
+<p />
+<tt>wget</tt> is a command-line web client useful for scripting interactions with servers. <tt>wget</tt> supports several protocols, but is mainly used for interacting with web servers. In its most basic use, the user specifies a URL on the command line, and <tt>wget</tt> fetches that URL. For example, to download Google's home page, one can simply execute:
+
+<pre>$ wget http://www.google.com
+--2024-08-21 19:53:30--  http://www.google.com/
+Resolving www.google.com (www.google.com)... 142.250.188.228, 2607:f8b0:4007:814::2004
+Connecting to www.google.com (www.google.com)|142.250.188.228|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/html]
+  Saving to: ‘index.html.’
+
+  index.html                               [ <=>                                                                       ]  19.99K  --.-KB/s    in 0s      
+
+2024-08-21 19:53:30 (185 MB/s) - ‘index.html’ saved [20467]
+</pre>
+
+Many interactions with web servers take place using the Common Gateway Interface, or CGI. If you've used a website and seen a URL containing lots of <tt>+</tt>s, <tt>?</tt>s and <tt>&</tt>s, you've used a CGI -- even if you didn't know it. <tt>wget</tt> can also make CGI requests from the command line (or in a script), although because characters such as <tt>&amp;</tt> have a special meaning on the command line, it is often necessary to enclose the request in single quotes, like this:
+
+<pre>wget 'http://maps.google.com/maps?q=paris&hl=fr'
+--2014-05-28 13:26:14--  http://maps.google.com/maps?q=paris&hl=fr
+Resolving maps.google.com (maps.google.com)... 74.125.239.136, 74.125.239.133, 74.125.239.137, ...
+Connecting to maps.google.com (maps.google.com)|74.125.239.136|:80... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://maps.google.com/maps?q=paris&hl=fr [following]
+--2014-05-28 13:26:14--  https://maps.google.com/maps?q=paris&hl=fr
+Connecting to maps.google.com (maps.google.com)|74.125.239.136|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: unspecified [text/html]
+Saving to: `maps?q=paris&hl=fr'
+
+    [  <=>                                                 ] 197,259      596K/s   in 0.3s    
+
+2014-05-28 13:26:15 (596 KB/s) - `maps?q=paris&hl=fr' saved [197259]
+</pre>
+
+<span class="anchor" id="diffpatch"></span> 
+<h4>diff and patch: see differences and create source patches</h4>
+
+<p />
+In this exercise, you'll be fixing security vulnerabilities in a few simple programs. However, instead of your whole program, we only want the <i>differences</i> between your new, fixed, program, and the original. A file which contains only the <i>changes</i> between two revisions of a program is called a "patch." Fortunately, creating patch files for single-file source programs is easy.
+
+<p>To see the differences between two files on Unix, you use the <tt>diff</tt> utility:
+
+<pre>
+$ diff -u one.txt two.txt
+</pre>
+
+Another useful tool is called <tt>patch</tt>. <tt>patch</tt> takes properly-formatted <tt>diff</tt> output, and applies the changes to the original file. <tt>diff</tt> can generate this output with a few options:
+
+<p />
+
+<pre>$ diff oldcode.c newcode.c &gt; fixed.patch
+</pre>
+
+<div class="infobox">
+<p />
+<img src="idea.png" />
+<tt>diff</tt> has many options to modify its behavior (see <tt>man diff</tt> for more information). <p />
+
+</div>
+
+
+<p />
+This above options for <tt>diff</tt> will create a patch with the filenames and all necessary information that the <tt>patch</tt> program requires. This makes patching as simple as executing: 
+
+<p />
+
+<pre>$ patch oldcode.c -i fixed.patch -o new-patched-file.c
+</pre>
+
+<p />
+... and this will create a patched version of the program that you can test. 
+
+<p />
+When submitting a patch file, it is <strong>highly recommended</strong> that you create the patch and then <strong>test it</strong> before submitting it to make sure that it works. You will not get any points for code that does not execute or compile in the exercise environment. 
+
+<p />
+If you're having permissions problems, consider switching to root by executing <tt class="backtick">sudo&nbsp;su&nbsp;-</tt> or change the permissions of the source directory in question. 
+
+<p />
+<span class="anchor" id="rfc"></span> 
+<h4>HTTP and CGI Protocols: sending commands to servers</h4>
+
+<p>One protocol that web servers use to support simple web apps is the Common Gateway Interface, or CGI. CGI defines the protocol for passing arguments to and from web applications (that's why many web apps end with the extension "cgi"). Those arguments are often tied to the values of HTML elements like form fields, radio buttons, and so on.   For example, in this exercise you will select a memo to view via a drop down menu. CGI tells the memo application which memo to open and display, based on the value of the parameter set by the drop down menu form element. </p>
+
+<p>CGI uses named parameters, as opposed to positional parameters. You've probably seen CGI parameters in a URL that looked something like this:</p>
+
+<pre>
+http://example.com/cgi-bin/order.cgi?food=steak&done=medium
+</pre>
+
+<p>The CGI app will receive these variables based on their names. For example, in Perl, CGI parameters are acquired using the function <tt>param('name')</tt>, where 'name' is the parameter in question. In <tt>order.cgi</tt> above, one can get the value of the parameters 'food' and 'done' using <tt>param('food')</tt> and <tt>param('done')</tt>.  This "named value" approach meshes well with the data structures known as "associative arrays" (called "dictionaries" in Python and "hashes" in Perl). An associative array (AA) is like a traditional array, except that instead of accessing elements using their numeric index, AA values are accessed using an alphanmeric key. (Sometimes you'll hear about AAs as being key-value data structures.) For example, in Perl, given a hash <tt>%labels</tt>, the label value for the key 'foo' can be read using <tt>$labels{'foo'}</tt> or by putting 'foo' into a string like so: <tt>$string = 'foo'</tt> and using <tt>$string</tt> as a key like so: <tt>$labels{$string}</tt>.</p>
+
+<p />In security, "Incomplete Mediation" occurs when a control for some resource does not restrict access as fully as it should. Web applications are often vulnerable to incomplete mediation attacks because authors mistake the limited choices presented to the user as being restrictions enforced on the user. For example, if <tt>order.cgi</tt> used a dropdown menu to provide choices for the <tt>done</tt> parameter, it might include such options as rare, medium, and well. But there's nothing on the HTML side restricting a user from submitting the following URL:
+
+<pre>
+http://example.com/cgi-bin/order.cgi?food=steak&done=charred
+</pre>
+
+
+<p />Instead, applications must inspect any input they receive and make sure that the input meets the requirements of the application (in this case that the <tt>done</tt> parameter is one of rare, medium and well. This is called input validation. Pathname attacks are a common type of Incomplete Mediation errors in web applications that accept file paths as input, because naive developers do not realize that users can simply submit any pathname they desire.
+
+<p>There are many resources online explaining how CGI works and how to <a class="http" href="http://www.garshol.priv.no/download/text/http-tut.html">hand-craft HTTP requests and CGI parameters</a> -- read some of them to help you experiment with <tt>memo.cgi/memo.pl</tt>.</p>
+
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+
+<p />You are the security administrator for FrobozzCo, a large corporation with a great many secrets. You have just come back from a much-needed four week vacation in West Shanbar, only to find that FrobozzCo has been having some <em>serious </em>security issues! In order to do everything you need, you've prepared a test environment on SPHERE with the software installed. 
+
+<span class="anchor" id="assignment"></span> 
+<h2>Assignment Instructions</h2>
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>pathname</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your <tt>pathname</tt> node. <p /></ol></ol><p />
+
+
+<p />Make sure that you save your work as you go. See the instructions in the <a href="#submission">submission section</a> of this exercise for information about save and restore scripts. Make sure that you save any changes you make to the sourcecode, your patches, memos, etc. in your home directory so they are not lost when you swap out your experiment.
+
+</div>
+<div class="infobox">
+<p />
+<img src="idea.png" />
+
+You will probably want to set up <a href="https://docs.sphere-testbed.net/experimentation/port-forwarding/">port forwarding</a> for tunelling HTTP over ssh so you can test the web application with a browser on your own desktop.<p />
+</div>
+
+</div>
+
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>
+
+<h4>Pathname Attacks -- The Memo Software</h4>
+
+<p />Something else is rotten in the state of FrobozzCo, and this time it<em> is </em>an inside job. FrobozzCo has an internal server that it uses for disseminating official company memoranda. All employees have access to this server via a web interface, but it is not reachable from the Internet without going through a firewall, and the only accesses in the logs have come from internal addresses. Somehow, for the last several weeks, user accounts on the server have been getting hijacked one by one. It seems clear: someone obtained and is "brute forcing" the password file and is using the newfound access to read private data. How could this be happening? 
+
+<p />Historically, UNIX systems kept their hashed passwords in <tt>/etc/passwd</tt> where they were encrypted (but world-readable). This made it trivial for an unprivileged user to feed the password file into a password cracker (sometimes on the same machine!) and obtain other authentication -- sometimes root or other privileged accounts. Modern unices combat this vulnerability by keeping the password portion in a file called <tt>/etc/shadow</tt>, where only root has access to it. Your system uses an <tt>/etc/shadow</tt> file, so you know that regular user accounts do not have access to password information. Furthermore, there is only one piece of in-house software on this computer, and it is not written in a language like C that is susceptible to buffer overflows; it is written in a scripting language with built-in memory management that is not vulnerable to that kind of attack. Yet, somehow someone has been able to read private data files like <tt>/etc/shadow</tt> using the memorandum software. This is bad. 
+
+<p />You are sure it must be somehow related to the memo viewing application, because all third-party software is up to date. The memo system works like this: users can log into the system via ssh and publish memos by writing files into the <tt>memo</tt> directory in their home directories. Then, the memo-reading CGI (which is <b>setuid root</b> ostensibly so it can read multiple users' <tt>memo</tt> directories) searches the <tt>memo</tt> directories and publishes a list of memos available for reading. A user can then use a web interface to select one of the memos from a list and read it. 
+
+<p />Your boss, William H. Flathead III is skeptical that the memo reader is the problem, because he wrote the memo reading program when he was a summer intern 15 years ago. Still, just in case, he asks you to produce a 1 page memo,<strong> working demo</strong> of the exploit, and a patch for the memo reading software, should a vulnerability exist. Either way, he also wants to know how to clean up this mess -- how severe is the compromise? How can we restore the system to a safe state? 
+
+<p /><span class="anchor" id="dassign"></span> 
+<h4>Pathname Attack Tasks</h4>
+<div class="infobox">
+<p />
+<div align="center"><h3>memo.cgi/pl: SUID-root Considered Harmful!</h3></div>
+<p>
+<img src="idea.png" /> Developers have come around to the idea that SUID-root code is almost always not the right way to solve a problem. In an attempt to keep developers from shooting themselves in the foot, Apache and Perl have made it difficult to run Perl scripts as root. This is a <b>good thing</b>. However, the FrobozzCo higher ups don't believe this security advice. So, they made their developers come up with a workaround. That workaround is what's called a <b>wrapper</b>.
+<p />
+<p>The program <tt>/usr/lib/cgi-bin/memo.cgi</tt> is a wrapper that simply calls <tt>/usr/lib/cgi-bin/memo.pl</tt> with whatever arguments it receives. <tt>memo.cgi</tt> is written in C, so it doesn't face the same SUID-root restrictions as would a Perl script. Since <tt>memo.cgi</tt> runs as root and calls <tt>memo.pl</tt>, that means that <tt>memo.pl</tt> runs as root, too!
+</p>
+<p>
+What this means for you is that modifications to the memo program need to be made in <tt>memo.pl</tt>, and removing SUID-root permissions means simply calling <tt>memo.pl</tt>directly. (You can rename it to <tt>memo.cgi</tt> if you like.)
+<p>In the rest of this document, we'll use various terms to refer to the code, but the main thing to understand is that <tt>memo.cgi</tt> is a C wrapper with SUID-root permissions and <tt>memo.pl</tt> is the Perl code that actually generates the memo website.
+</p>
+</div>
+
+<ol>
+<li><p />Load your Pathname Attacks exercise on SPHERE.</li>
+<li><p />Find the directory traversal vulnerability by experimenting with the application or by looking in the memo.pl code.</li> 
+	<ul>
+		<li><p />The sourcecode for <tt>memo.cgi</tt> is located in /usr/lib/cgi-bin/memo.pl -- the file <tt>memo.cgi</tt> <b>calls</b> <tt>memo.pl</tt> (see above for more information)</li>
+	<li><p />If you have <a class="http" href="https://docs.sphere-testbed.net/experimentation/xdc/#reaching-an-xdc-via-ssh/">set up ssh tunneling</a> to port <b>80</b> via local port <b>8118</b>, the memo application can be accessed at <a class="http" href="http://localhost:8118/cgi-bin/memo.cgi">http://localhost:8118/cgi-bin/memo.cgi</a></li>
+	</ul>
+	<li><p />Exercise a remote vulnerability in <tt>memo.cgi</tt> to read the private file <tt>/etc/shadow</tt></li> 
+<li><p />Create an executable program demonstrating your exploit. Your program should display or save /etc/shadow. We've created a skeleton exploit script in <tt>/root/submission/exploit.sh</tt>. Edit it with your favorite text editor.</li>
+<li><p />Fix the flaw and create a patch of your new code against the original. Your fix should add input validation and make <tt>memo.cgi/memo.pl</tt> non SUID-root so that your exploit would no longer work.</li>
+<li><p />Write a ~1 page memo:</li> 
+	<ol>
+	<li><p />describe the security flaw you found, how you fixed it, and how your demo exploit works. The memo itself should quote as little sourcecode as possible; for longer sections, refer to filenames and line numbers in the original or your attached source.</li>
+	<li><p />Include in your memo:</li>
+		<ol>
+		<li><p />A recovery plan for the server, answering: How serious was this breach? What should be done with the server in order to secure it?</li>
+		<li><p />An explanation of why it <b>is not</b> sufficient to simply make sure that the pathnames  start with <tt>/home/username/memo/</tt> or <tt>/root/memo/</tt></li>
+		<li><p />A description of an alternative design for memo.cgi/memo.pl that would not require it being SUID-root</li>
+		<li><p />Any other observations or thoughts you might have.</li>
+		</ol>
+	</ol>
+<li><p />Store the following files in <tt>/root/submission</tt>:</li> 
+	<ol>
+	<li><p />your memo</li>
+	<li><p />your working demo with instructions</li>
+	<li><p />your patch</li>
+	</ol>
+	<li><p />Use the scripts described in the <a href="#submission">submission section</a> for creating a submission tarball.</li>
+</ol>
+
+
+
+<div class="level3">
+<h3>What can go wrong</h3>
+
+...
+
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+<p>For this exercise, you will submit a tarball containing your patch, memo, and exploit code. Use the script submit.sh in /root on the <tt>server</tt> host for creating and restoring those tarballs.</p>
+
+<h2>submit.sh and restore.sh</h2>
+
+<p><b>Note: do not run submit.sh and restore.sh as sudo!</b></p>
+
+<p><tt>submit.sh</tt> will back up: </p>
+
+<ul>
+<li>The memo code in <tt>/usr/lib/cgi-bin/memo.pl</tt> 
+</li><li>everything in <tt>/root/submission</tt>, which should include:
+<ol>
+	<li><tt>exploit.sh</tt></li>
+	<li>your memo</li>
+   	<li>your patch</li>
+</ol>
+</ul>
+
+<p><tt>restore.sh</tt> will restore those files to their original locations, automatically overwriting whatever is there. </p>
+
+<p><b>Note: do not run submit.sh and restore.sh as sudo!</b></p>
+
+<p>Submit your tarball to your instructor. </p>
+
+
+
+</div>
+</body></html>

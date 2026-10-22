@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html><head>
+    <title>CCTF: Secure Server</title>
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+  </head><body><h1>CCTF: Secure Server</h1>
+<div class="author">Created by: Jelena Mirkovic, USC/ISI, sunshine@isi.edu</div>
+<table class="new">
+<tbody>
+<tr class="new">
+<td class="new">
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a></li>
+<li><a href="#blue">Blue Team Tasks</a></li>
+<li><a href="#red">Red Team Tasks</a></li>
+<li><a href="#scoring">Scoring</a></li>
+<li><a href="#dynamics">Exercise Dynamics</a></li>
+<li><a href="#grading">Grading</a></li>
+<li><a href="#links">Useful Links</a></li>
+</ol>
+</div>
+<h2>How to access</h2>
+Use the XDC created for your team (e.g., teamX), named <b>teamX</b> and attach to <b>real.uscbankX.csci430</b>. Then SSH to <b>blueserver</b> or <b>redserver</b>. <span class="anchor" id="overview"></span>
+<h2>Overview</h2>
+<p>This exercise lets students practice setting up and monitoring a Web server. Students will be divided into teams. Each team will play the defender role (Blue team) for their own system and the attacker role (Red team) for another team's system.</p>
+<p>This exercise uses the topology that looks like below:</p>
+<p><img src="topo.png">.</p>
+<p>Teams can share files by creating and sharing their own Google drive or Dropbox or similar. Team 1 will defend blueserver node in their experiment - uscbank1. They will also have access to redserver node in the experiment of team 7 - uscbank7, and they will launch attacks on blueserver node in uscbank7 experiment. Similarly team 2 protects blueserver node in uscbank2 and attacks from redserver node in uscbank1. And so on.</p>
+<p>To access their nodes each team member should create an XDC in project "csci430" and attach it to the correct experiment (e.g., blue team members attach to the experiment they are defending and red team members attach to the experiment they are attacking). <span class="anchor" id="blue"></span></p>
+<h2>Blue Team Milestones</h2>
+<p>Milestone 1 - server is operational and returns something for at least one API call (e.g., registration works) - point 1 for each member of the team</p>
+<p>Milestone 2 - server is operational and returns mostly correct responses - point 1 for each member of the team</p>
+<h2>Blue Team Tasks</h2>
+<p>This team will control the <tt>blueserver</tt>. The team's goal is to develop several applications so that they function as specified, and to secure them and the network against intrusions. The applications to be supported are: a Web server with a banking application, a DB app to support the banking application. The team should also locate and close any unnecessary applications that may be used as a backdoor. I will open a few backdoors at the competition stage and you will need to find them and close them. <b>The blueserver node comes with Apache web server, MySQL DB and PHP implementing very basic and buggy bank app functionality. You can use this and fix the bugs, or reimplement from scratch.</b></p>
+<h3>Web server with a banking application</h3>
+The bank app should work like this:
+<ul>
+<li>It is a publicly accessible application, and it can be accessed using command-line tools like wget or curl</li>
+<li>When the page <span style="color: blue;">blueserver/register.php?user=A&amp;pass=B</span> is accessed from the redserver node, the system creates a new account for user A with pass B in the system.</li>
+<li>When the page <span style="color: blue;">blueserver/login.php?user=A&amp;pass=B</span> is accessed, the system validates the user login and serves the user a cookie.</li>
+<li>When the page <span style="color: blue;">blueserver/manage.php?action=C&amp;amount=D</span> is accessed, the system performs action C with amount D. Below are the possible combinations of action and amount:
+<ol>
+<li>action=deposit, amount=D - add amount D to the user's account and display balance</li>
+<li>action=withdraw, amount=D - withdraw amount D from the user's account if there are sufficient funds and display balance, otherwise do not witdraw, just display the balance and an error message.</li>
+<li>action=balance, no amount variable specified - print out balance from the user's account</li>
+<li>action=close, no amount variable specified - close out the user's account</li>
+</ol>
+</li>
+<li>When the page <span style="color: blue;">blueserver/logout.php</span> is accessed, the user is logged out and the cookie invalidated.</li>
+</ul>
+Balance should be displayed in the following format "balance=VALUE", e.g., "balance=10". You may put any other information on the Web page returned to the user. Blueserver will receive legitimate user requests from the redserver node. They will also receive attack traffic from the redserver node. Redserver node will use IP aliasing to claim multiple IP addresses. An IP in the red network can be legitimate, attack or both. A legitimate IP will always remain legitimate, while the attack IP can pretend to act legitimately at some times, and perform attacks at other times. Red team and my scoring program can create IP addresses in the red network on the fly. My scoring program will further create only legitimate IPs - red team will not be allowed to use these for attacks. The goal of the blue team is to serve all requests coming from legitimate IPs, to either serve or drop requests coming from the attack IPs and to maintain control and health of their app and the blueserver node.
+<p></p>
+<p></p>
+<div class="warning">Make sure you understand how <tt>iptables</tt> command works before you use it as you may cut off your access to a given machine in SPHERE if you filter out some specific traffic to/from it, e.g., all outgoing traffic. The only way to recover from this is to reboot your machine. If you made the rules "sticky" I will have to recreate your experiment, which means you will have to reinstall everything.</div>
+<p></p>
+<h3>Assumptions and Requirements</h3>
+<p>You can borrow code from online sources but you need to understand what it does and how.</p>
+<h3>Suggested division of work</h3>
+It may make sense to divide work by server so that 2-3 people work on one server's development/configuration. Monitoring should also be automated on server to ensure that all accesses are logged, and processed correctly. Additionally, 2-3 people should work on monitoring the traffic, detecting and responding to attacks. You can have one person work on finding and closing backdoors. Once you close a backdoor, make sure that it is really closed. Also, make sure you don't close a service that a SPHERE node needs. If you do, you may cut yourself off the network. You will then need to recreate and reinstall the experiment. You can see what necessary services are at the start of your CCTF, before you install anything on the node.
+<p></p>
+<h3>Suggested strategies</h3>
+<ul>
+<li>You may want to limit the ability of attackers to scan your network.</li>
+<li>Make sure to handle SQL injection attacks and to set up folder access conservatively.</li>
+<li>Some legitimate users may create weak passwords. You should accept every password.</li>
+<li>You can set up HTTPS if you like and let me know and I will adjust my legitimate client script to use it.</li>
+</ul>
+<span class="anchor" id="red"></span>
+<h2>Red Team Tasks</h2>
+This team will control the <tt>redserver</tt> node. I will choose some IPs from the network's range (1.0.0.0/8) to host my legitimate clients and the rest can be used for attacks. The goal of the red team is to gain access to blue team's server and interfere with its operation. This can be done by: (1) performing SQL injection, (2) making the banking application behave in a way that is not expected (e.g., being able to withdraw money from a legitimate user's account), (3) finding and exploiting a backdoor.
+<p>You can set up a custom IP on redserver like this: <tt>sudo ifconfig ethX:Y 1.1.1.11 up</tt> replace X with the actual interface number for 1.1.1.6 address on redserver node. Replace Y with a number. Start with 2 and go up with each new address.</p>
+<p>You can use this new address in wget or curl by doing this: <tt>wget --bind-address=1.1.1.11 URL</tt> or <tt>curl --interface 1.1.1.11 URL</tt></p>
+<p>You will need to use cookies to access the server. Please explore wget and curl to learn how to save and use cookies.</p>
+<h3>Assumptions and Requirements</h3>
+<p>You can borrow code from online sources but you need to understand what it does and how. Attacks that overwhelm the blue team's network are out of scope (e.g., DDoS), but anything that targets the blue server is in scope. Also, doing "sudo su sunshine" on your experimental machine and then logging into Blue Team's machines is out of scope.</p>
+<h3>Suggested division of work</h3>
+It may make sense to divide work by attack technique so that 2-3 people work on different scanning approaches, 2-3 work on SQL injections, 2-3 work on password cracking, 2-3 work on sniffing and scanning for backdoors, etc.
+<p></p>
+<h3>Suggested strategies</h3>
+<ul>
+<li>Attacking IPs do not have to attack all the time. Mixing up some legitimate traffic with attack would be good to hide the nature of the IPs.</li>
+<li>User passwords/cookies could be sniffed from the net</li>
+<li>It may be possible to leverage an existing vulnerability in OS or applications if you find it.</li>
+<li>Look for backdoors. If they are not closed, you will be able to open a reverse shell into the blue server.</li>
+<li>You can do some hacker training at <a href="http://www.overthewire.org/">http://www.overthewire.org</a> or at <a href="https://tryhackme.com/">TryHackMe</a></li>
+</ul>
+<span class="anchor" id="scoring"></span>
+<h2>Scoring</h2>
+The Blue Team receives a point for each legitimate client's request that the server processes and responds to correctly. Red Team gets the point otherwise. <span class="anchor" id="dynamics"></span>
+<h2>Exercise Dynamics</h2>
+Teams will need to simultaneously act as Blue Team and Red Team throughout the exercise. We will then have a post-mortem discussion and selection of a winning team. <span class="anchor" id="grading"></span>
+<h2>Grading</h2>
+Each team member will be graded based on their contribution to the team effort, not based on the team's performance. After the exercise each team member will submit a report containing the list of contributions they made to the team effort - e.g., modules that they coded, testing and setup they performed, etc. All team members must sign each report. Reports will be delivered to the instructor in class. The grades will be assigned based on the report. <span class="anchor"></span>
+<h2>Useful Links</h2>
+You can use any programming language you like for any part of your assignment. Use Google to discover how to set up your servers to be as secure as possible.</td>
+</tr>
+</tbody>
+</table></body></html>

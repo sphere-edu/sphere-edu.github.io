@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- saved from url=(0073)https://www.isi.deterlab.net/file.php?file=/share/shared/HashCollisionDoS -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="robots" content="index,nofollow">
+
+    <title>DDoS: Hash Collisions</title>
+
+    <link rel="stylesheet" type="text/css" charset="utf-8" media="all"
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen"
+href="../../css//screen.css">
+
+  </head>
+
+  <body dir="ltr" lang="en">
+    <div id="page" dir="ltr" lang="en">
+
+      <!-- Topic -->
+      <h1>Exploit and Patch a Hash-Collision Denial-of-Service Vulnerability</h1>
+      <div class="author">Created by: Nicolaas Weideman, USC-ISI (nweidema at isi.edu), Dr. Christophe Hauser, USC-ISI (hauser at isi.edu), and
+        Dr. Jelena Mirkovic, USC-ISI (mirkovic at isi.edu)<br>
+      </div>
+
+      <!-- Table of contents -->
+      <div class="table-of-contents">
+        <div class="table-of-contents-heading">Contents</div>
+        <ol type="1">
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#reading">Required Reading</a>
+            <ol>
+              <li><a href="#read-intro">Introduction</a></li>
+            </ol>
+          </li>
+          <li><a href="#assignment">Assignment Instructions</a>
+            <ol>
+              <li><a href="#assign-setup">Setup</a>
+              </li><li><a href="#assign-exploit">Exploitation</a>
+              </li><li><a href="#assign-mitigate">Mitigation</a>
+
+
+              </li>
+            </ol>
+          </li>
+          <li><a href="#submission">Submission Instructions</a></li>
+        </ol>
+      </div>
+
+      <!-- Overview -->
+      <span class="anchor" id="overview"></span> 
+      <h2>Overview</h2>
+      <p>
+      The purpose of this exercise is to help you understand a hash-collision denial-of-service (DoS) attack and its mitigation.
+      In this exercise, you will exploit and mitigate a hash-collision DoS vulnerability. 
+      </p>
+      <!--  Required Reading -->
+      <br>
+      <span class="anchor" id="reading"></span> 
+      <h2>Required Reading</h2>
+
+      <!--  #read-intro -->
+      <span class="anchor" id="read-intro"></span> 
+      <h3>Introduction</h3>
+      <p>
+      A hash-collision DoS attack exploits the worst-case execution time of a hash table data structure.
+      A hash table uses a hash function to map entries to an index in a table.
+      On average, the time it takes to store and retrieve data from such a data structure is independent of the number of entries.
+      However, this is only true when entries are spread evenly across the table.
+      When many entries map to the same index (called a hash collision), the performance can degrade significantly and lead to DoS.
+      We recommend reading and understanding how <a href="https://en.wikipedia.org/wiki/Hash_table">hash tables</a> work (especially the algorithmic complexity of their operations), as well as <a href="https://en.wikipedia.org/wiki/Collision_attack#Hash_flooding">hash-collision DoS attacks</a>, before proceeding.
+      </p>
+
+       <!--  Assignment Instructions -->
+      <br>
+      <span class="anchor" id="assignment"></span> 
+      <h2>Assignment Instructions</h2>
+
+      <!--  Introduction -->
+      <h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>hashcollision</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your <tt>target</tt> node. <p /></ol></ol><p />
+
+On <tt>target</tt> node, switch to <tt>/tmp/target/exercise</tt> folder.
+
+Compile the program:
+<pre>bash compile.sh
+</pre>
+The program <tt>main</tt> is a simple program that takes a number of strings, one per line, and stores these in a hash table.
+It can be run with
+<pre>./main N
+</pre>
+where <tt>N</tt> is the length of the input strings (including the newline character).
+
+<span class="anchor" id="assign-exploit"></span> 
+<h4> Exploitation </h4>
+The program <code>main</code> is vulnerable to a hash-collision DoS attack.
+We include the Python script <code>exploit.py</code>, which can be used to exploit this vulnerability.
+It will pass a linearly increasing number of either random or malicious strings to main, to store in the hash table. Run the program with <tt>--help</tt> to learn which parameters it takes.
+The malicious strings will trigger many hash collisions, causing execution time to increase polynomially.
+The random strings, on the other hand, will not trigger hash collisions (or significantly less) and therefore the execution time will also only increase linearly.
+The script measures the time it takes the program to process the strings and stores these time values to a file, in JSON format.
+You can plot the execution time of processing malicious strings against that of random strings with the <code>plot_times.py</code> script.
+In order to prove a program is vulnerable to a hash-collision DoS attack, you need to show that the worst-case execution time is an order of magnitude worse than the best-case (polynomial vs linear).
+Play around with the <code>exploit.py</code> script, generating both malicious and random input until you find parameters that clearly show the difference in execution time growth.
+Plot these execution times.
+
+<span class="anchor" id="assign-mitigate"></span> 
+<h4> Mitigation </h4>
+The vulnerability stems from the fact that all the malicious strings map to the same table index when hashed by the hash function.
+This hash function can be found in function named "hash" in the <code>hash.c</code> file.
+To mitigate this vulnerability, you need to change this function so that an attacker cannot reliably generate colliding strings.
+This can be achieved by using a random hash function.
+Such hash functions randomize their output using a secret key.
+If the attacker does not know the key, it is impossible to know which strings will collide.
+One such function, created specifically to protect against hash-collision DoS attacks, is the <a href="https://en.wikipedia.org/wiki/SipHash">SipHash</a> function.
+As it is not recommended to reimplement secure hash functions on your own, you can use one of these implementations of SipHash: <a href="https://github.com/veorq/SipHash">one</a> and <a href="https://github.com/majek/csiphash">two</a>.
+You can use the <a href="https://man7.org/linux/man-pages/man2/getrandom.2.html">getrandom</a> system call as a secure source of randomness for the secret key of SipHash.
+After making the change, remember to recompile with
+<pre>bash compile.sh
+</pre>
+Then, repeat the experiment done in the Exploitation section, with the same parameters and redraw the graphs.
+Now, there should be no significant difference between execution time growth between the malicious and random strings.
+
+<span class="anchor" id="submission"></span>
+<h2>Submission Instructions</h2>
+
+You should submit one tar-zipped file, containing the following:
+<ol>
+<li> Your patched <code>hash.c</code> file.
+</li><li> The graph showing the successful attack on the vulnerable program.
+</li><li> The graph showing the failed attack on the patched program.
+</li></ol>
+
+
+    </div>
+  
+
+
+</body></html>

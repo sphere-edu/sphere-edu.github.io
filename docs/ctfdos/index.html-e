@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="robots" content="index,nofollow">
+
+<title>CCTF: Secure and Resilient Server</title>
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="https://jelenamirkovic.github.io/sphere-education.github.io/css/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" href="https://jelenamirkovic.github.io/sphere-education.github.io/css/screen.css">
+
+</head><body dir="ltr" lang="en" data-pinterest-extension-installed="cr1.39.1"><hr>
+<div id="page" dir="ltr" lang="en">
+<h1>CCTF: Secure and Resilient Server</h1>
+<div class="author">Created by: Jelena Mirkovic, USC/ISI, sunshine@isi.edu</div>
+<table class="new">
+<tbody>
+<tr class="new">
+<td class="new">
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a></li>
+<li><a href="#blue">Blue Team Tasks</a></li>
+<li><a href="#red">Red Team Tasks</a></li>
+<li><a href="#scoring">Scoring</a></li>
+<li><a href="#dynamics">Exercise Dynamics</a></li>
+<li><a href="#grading">Grading</a></li>
+<li><a href="#links">Useful Links</a></li>
+</ol>
+</div>
+<h2>How to access</h2>
+Use the XDC created for your team (e.g., teamX), named <b>teamXred</b> or <b>teamXblue</b>. They will be properly attached. Blue team can access <b>blueserver</b> and <b>bluerouter</b> in the experiment they are protecting, and red teams can access <b>redserver</b> in the experiment they are attacking. No teams have access to the <b>whiteserver.</b>&nbsp;<span class="anchor" id="overview"></span>
+<h2>Overview</h2>
+<p>This exercise lets students practice monitoring and defending a Web server. Students will be divided into teams. Each team will play the defender role (Blue team) for their own system and the attacker role (Red team) for another team's system.</p>
+<p>This exercise uses the topology that looks like below (link between blueserver and bluerouter is only 10Mbps, while other links are 10 times larger):</p>
+<p><img src="topo.png" alt="topology with 4 modes" title="topology with 4 modes" data-d2l-editor-default-img-style="true" style="max-width: 100%;"></p>
+<p>Teams can share files by creating and sharing their own Google drive or Dropbox or similar.</p>
+<p>To access their nodes each team member should use the XDCs for their team. Members are forbidden from accessing XDCs of other teams. <span class="anchor" id="blue"></span></p>
+<h2>Blue Team Tasks</h2>
+<p>This team will control the <b>blueserver</b> and <b>bluerouter</b>. The team's goal is to secure the server and the router against intrusions and DoS attacks. The team should leverage existing code for a banking application on the blueserver. If they want, they can improve this code. The team should also locate and close any unnecessary applications that may be used as a backdoor. I will open a few backdoors at the competition stage and you will need to find them and close them.</p>
+<p>Blueserver will receive legitimate user requests from the <b>redserver</b> node, but only from chosen IP addresses. They will also receive attack traffic from the&nbsp;<b>redserver</b> node. Redserver nodes will use IP aliasing to claim multiple IP addresses in 1.2.0.0/16 range. An IP can be legitimate, attack or both. A legitimate IP will always remain legitimate, while the attack IP can pretend to act legitimately at some times, and perform attacks at other times. Red team and my scoring program can create IP addresses on the fly. My scoring program will further create only legitimate IPs - red team will not be allowed to use these for attacks. The goal of the blue team is to serve all requests coming from legitimate IPs, to either serve or drop requests coming from the attack IPs and to maintain control and health of their app and the blueserver node.</p>
+<p></p>
+<p></p>
+<div class="warning">Make sure you understand how <tt>iptables</tt> command works before you use it as you may cut off your access to a given machine in SPHERE if you filter out some specific traffic to/from it, e.g., all outgoing traffic. The only way to recover from this is to reboot your machine. If you made the rules "sticky" I will have to recreate your experiment, which means you will have to reinstall everything.</div>
+<p></p>
+<h3>Assumptions and Requirements</h3>
+<p>You can borrow code from online sources but you need to understand what it does and how.</p>
+<h3>Suggested division of work</h3>
+Your main task will be to automate monitoring of network traffic on bluerouter, and open ports and user requests on blueserver, and to build scripts that can block an IP automatically if it engages in malicious behavior. It may make sense to divide work so that 2-3 people work on bluerouter and 2-3 people work on blueserver. Once you close a backdoor, make sure that it is really closed. Also, make sure you don't close a service that a SPHERE node needs. If you do, you may cut yourself off the network. You will then need to recreate and reinstall the experiment. You can see what necessary services are at the start of your CCTF, before you install anything on the node.
+<p></p>
+<h3>Suggested strategies</h3>
+<ul>
+<li>You may want to limit the ability of attackers to scan your network.</li>
+<li>Make sure to handle SQL injection attacks and to set up folder access conservatively.</li>
+<li>You can set up HTTPS if you like and let me know and I will adjust my legitimate client script to use it.</li>
+<li>Double check your cookie settings. Can someone fabricate a cookie that you would consider valid?</li>
+<li>Try to spot legitimate IP addresses. You can create an allow-list for them and block everything else.</li>
+<li>Treat network attacks separate from application attacks. Network attacks are better monitored for and handled on <b>bluerouter</b> than on <b>blueserver</b>. Conversely, you can monitor application logs to detect and handle application attacks on <b>blueserver</b>.</li>
+</ul>
+<span class="anchor" id="red"></span>
+<h2>Red Team Tasks</h2>
+This team will control the <tt>redserver</tt> node. I will choose some IPs from the network's range (1.0.0.0/8) to host my legitimate clients and the rest can be used for attacks. The goal of the red team is to interfere with the legitimate user's access to blueserver. This can be done by: (1) launching a lot of traffic at the blueserver, (2) launching a lot of user requests at the blueserver, (3) making the banking application behave in a way that is not expected (e.g., being able to withdraw money from a legitimate user's account), (3) finding and exploiting a backdoor and deleting key files from the blueserver.
+<p>You can set up a custom IP on redserver like this: <tt>sudo ifconfig ethX:Y 1.1.1.11 up</tt> replace X with the actual interface number for 1.1.1.6 address on redserver node. Replace Y with a number. Start with 2 and go up with each new address.</p>
+<p>You can use this new address in wget or curl by doing this: <tt>wget --bind-address=1.1.1.11 URL</tt> or <tt>curl --interface 1.1.1.11 URL</tt></p>
+<p>You will need to use cookies to access the server. Please explore wget and curl to learn how to save and use cookies.</p>
+<h3>Assumptions and Requirements</h3>
+<p>You can borrow code from online sources but you need to understand what it does and how. Also, doing "sudo su username" on an experimental machine that you are not supposed to access is out of scope, regardless of whether you use your username or another student's username.</p>
+<h3>Suggested division of work</h3>
+It may make sense to divide work by attack technique so that 1-2 people work on different scanning approaches, 2-3 work on application DoSs, 1-2 work on network DoS, 1-2 work on sniffing and scanning for backdoors, etc.
+<p></p>
+<h3>Suggested strategies</h3>
+<ul>
+<li>Attacking IPs do not have to attack all the time. Mixing up some legitimate traffic with attack would be good to hide the nature of the IPs.</li>
+<li>It may be able to fabricate a user's cookie and thus impersonate a user</li>
+<li>It may be possible to leverage an existing vulnerability in OS or applications if you find it.</li>
+<li>Look for backdoors. If they are not closed, you will be able to open a reverse shell into the blue server.</li>
+</ul>
+<span class="anchor" id="scoring"></span>
+<h2>Scoring</h2>
+The Blue Team receives a point for each legitimate client's request that the server processes and responds to correctly. Red Team gets the point otherwise. <span class="anchor" id="dynamics"></span>
+<h2>Exercise Dynamics</h2>
+Teams will need to simultaneously act as Blue Team and Red Team throughout the exercise. We will then have a post-mortem discussion and selection of a winning team. <span class="anchor" id="grading"></span>
+<h2>Grading</h2>
+Each team member will be graded based on their contribution to the team effort, not based on the team's performance. After the exercise each team member will submit a report containing the list of contributions they made to the team effort - e.g., modules that they coded, testing and setup they performed, etc. All team members must sign each report. Reports will be delivered to the instructor in class. The grades will be assigned based on the report. <span class="anchor"></span>
+<h2>Useful Links</h2>
+You can use any programming language you like for any part of your assignment. Use Google to discover how to set up your networks and servers to be as secure as possible.</td>
+</tr>
+</tbody>
+</table>
+<br><br></div></body></html>

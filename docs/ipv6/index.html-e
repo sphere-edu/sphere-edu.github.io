@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Networking: IPv6</title>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>IPv6 Internetworking</h1>
+<div class="author">Created by: Lyndon Pierson.<br>
+</div>
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+<li><a href="#assignment">Assignment Instructions</a>
+<ol>
+<li><a href="#setup">Setup</a>
+<li><a href="#tasks">Tasks</a>
+</ol>
+
+<li><a href="#submission">Submission Instructions</a>
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+<p>Lab exercise incorporating IPv6.</p>
+
+<span class="anchor" id="assignment"></span> 
+<h2>Assignment Instructions</h2>
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>ipv6</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your nodes. <p /></ol></ol><p />
+
+
+
+</div>
+
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>
+<p>Your task is to enable IPv6 addresses between the nodes in your experiment.
+  <ol>
+    <li>
+  Run:
+  <pre>
+    ifconfig
+  </pre>
+  on each node, discover and note the interface for each IPv4 address shown in the topology diagram above. Also note the IPv6 address assigned to each interface that you just discovered.
+
+<li>Ping the router from client and server using the link-local addresses and using the interfaces on client and server node that face the router.
+
+<pre>
+ping6 -I ethx -c 1 fe80::/64 (use the addresses from your experiment)
+</pre>
+
+<li>Verify that IPv6 kernel is running on the router, client and server nodes.
+
+<pre>
+test -f /proc/net/if_inet6 && echo "Running kernel is IPv6 ready"
+</pre>
+
+<li>Install netplan on router, client and server (use sudo):
+<pre>
+apt update -y
+apt install netplan.io network-manager -y
+</pre>
+    
+Edit /etc/netplan/config.yaml file on router, client and server nodes to include script for each interface.
+
+<p><b>Note:</b> remember the router has two interfaces; replace <i>ethx</i> and <i>ethy</i> below with the correct ethernet interfaces from your experiment!</p>
+<p>Router node:</p>
+<pre>
+# This file describes the network interfaces available on your system
+# For more information, see netplan(5).
+network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    ethx:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+          - 5.6.7.2/24
+          - 2001:0db8:0100:f101::250/64
+    ethy:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+          - 1.1.2.2/24
+          - 2001:0db8:0100:f102::250/64
+</pre>
+    
+<p>Client node:</p>
+<pre>
+# This file describes the network interfaces available on your system
+# For more information, see netplan(5).
+network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    ethx:
+      dhcp4: false
+      dhcp6: false
+      gateway6: 2001:0db8:100:f102::2
+      addresses:
+          - 1.1.2.3/24
+          - 2001:0db8:0100:f102::2/64
+</pre>
+    
+<p>Server node:</p>
+<pre>
+# This file describes the network interfaces available on your system
+# For more information, see netplan(5).
+network:
+  version: 2
+  renderer: NetworkManager
+  ethernets:
+    ethx:
+      dhcp4: false
+      dhcp6: false
+      gateway6: 2001:0db8:100:f101::1
+      addresses:
+          - 5.6.7.8/24
+          - 2001:0db8:0100:f101::1/64
+</pre>
+
+After installing netplan and editing yaml file, apply all settings on router, client and server nodes.
+
+<pre>
+netplan apply
+</pre>
+
+<li>Run <tt>ifconfig</tt> on router, client and server to see the IPv6 addresses added.
+
+Run ip command from router to see the link-local addresses of client and server.
+
+<pre>
+ip -6 neigh show
+</pre>
+    
+
+<pre>
+/sbin/ip -6 route show dev ethx
+</pre>
+    
+<li>Configure your <tt>router</tt> node as a IPv6 router. Enable forwarding by typing:
+
+  <pre>
+    sysctl -w net.ipv6.conf.all.forwarding=1
+    </pre>
+    
+<li>Try pinging client from server, using the client's IPv6 address.
+    
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+Submit the following, all in one tar-gzipped file
+<ol>
+<li>Annotated topology with IPv4 and IPv6 addresses and interface names (e.g., eth1)
+<li>Your netplan configuration files
+<li>Output of the following command, ran at <tt>client</tt> node:
+  <pre>
+    traceroute -6 2001:db8:100:f101::1
+    </pre>
+</ol>
+
+</div>
+</body></html>

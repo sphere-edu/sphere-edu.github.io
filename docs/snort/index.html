@@ -1,0 +1,215 @@
+<html><head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Prevention: Snort</title>
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+
+
+
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>Securing Legacy Systems</h1>
+<div class="author">Created by: Jeff Mates, JHUISI, jmates1@jhu.edu,<br>
+  Modified by: Jelena Mirkovic, USC/ISI, sunshine@isi.edu
+  
+</div>
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+</li><li><a href="#reading">Recommended Readings</a>
+</li><li><a href="#intro">Introduction</a>
+</li><li><a href="#assignment">Assignment Instructions</a>
+<ol>
+<li><a href="#setup">Setup</a>
+</li><li><a href="#basictasks">Basic Tasks</a>
+<ol>
+<li><a href="#norules">Activate Snort Without Rules</a>
+</li><li><a href="#traffic">Analyze Network Traffic</a>
+</li><li><a href="#basicrules">Write Rules to Guard Against Simple Requests</a>
+</li></ol>
+
+</li><li><a href="#intermediatetasks">Intermediate Tasks</a>
+<ol>
+<li><a href="#dos">DOS Defense</a>
+</li><li><a href="#protection">Securing Traffic on the Network</a>
+</li></ol>
+
+</li><li><a href="#advancedtasks">Advanced Tasks</a>
+<ol>
+<li><a href="#execution">Code Execution Vulnerability</a>
+</li><li><a href="#encoding">Defend Against ASCII Encoding</a>
+</li></ol>
+
+</li><li><a href="#glitches">What Can Go Wrong</a>
+</li></ol>
+</li><li><a href="#submission">Submission Instructions</a>
+
+</li></ol>
+</div>
+
+<span class="anchor" id="overview" /> 
+<h2>Overview</h2>
+
+<p>This exercise demonstrates how Snort (version 2) and similar inline intrusion detection / prevention systems can be used to help secure legacy software by walking them through an environment that includes an extremely insecure application.</p>
+<p>Depending on their skill level students will be asked to analyze network the network traffic produced by this program, to write Snort rules to protect against known attacks against this program and to create a sample attack against this program which they will be asked to guard against.</p>
+
+<span class="anchor" id="reading" /> 
+</p><h2>Recommended Reading</h2>
+
+<p>The following information may be useful in completing this exercise.</p>
+<ul>
+<li><a href="http://en.wikipedia.org/wiki/Snort_(software)" target="new">Short summary of Snort on Wikipedia</a>
+</li><li><a href="http://manual-snort-org.s3-website-us-east-1.amazonaws.com/" target="new">The Snort Manual</a>
+</li><li>A guide to creating <a href="http://www.sans.org/reading_room/whitepapers/tools/developing-snort-dynamic-preprocessor_32874" target="new">Snort Preprocessors</a>
+</li></ul>
+
+
+<span class="anchor" id="intro" /> 
+<h2>Introduction</h2>
+
+<p>When working in the field of network security it is not always possible to ensure the security of legacy applications.  Many businesses and organizations use systems that are known to be highly insecure and will continue to do so for the foreseeable future as it would not be cost effective to replace or modify these programs.  As such the best we can do to improve the security of these systems is to place them behind filters that can be controlled.</p>
+<p>In this exercise you will be using Snort (version 2) to help secure a highly insecure application without modifying the application itself.  This application functions as a simple password protected file server for plain text documents, and it is up to you to use Snort to help protect this information.</p>
+<p>This network is broken into three chunks.  The first chunk contains the work environment which houses the legacy server along with a single client machine.  This network is protected by the Snort router, which is set not to permit any traffic through at at the start of this exercise.  The second network contains a single outsider machine.  Finally,
+  the third contains two client computers.  All of these networks are connected to each other using a single router.</p>
+
+<p><b>Note: In this exercise you will use Snort version 2. There is now Snort version 3, with very different architecture and rule format.</b></p>
+
+<span class="anchor" id="assignment" /> 
+<h2>Assignment Instructions</h2>
+
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>snort</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your nodes. <p /></ol></ol><p />
+
+
+
+<div class="level3">
+<h2>Basic Tasks</h2>
+<span class="anchor" id="basictasks" />
+
+<span class="anchor" id="norules" />
+<h3>Start Snort Without Rules</h3>
+<ol>
+  <li>Connect to the <tt>snort</tt> node and modify <tt>/etc/snort/snort.conf</tt> to set the DEBIAN_SNORT_HOME_NET to 100.1.10.0/24. Then type:
+    <pre>
+      sudo snort --daq nfq -Q -v
+    </pre>
+  <li>On <tt>client1</tt> node type:
+        <pre>
+      ftp server
+      ...enter "anonymous" as username
+      ...enter any string as password
+      get ducky.xml
+    </pre>
+	You should see a large number of packets being reported by Snort. On <tt>router</tt> node run:
+	<pre>
+	  tcpdump -i ethX -nn -s 0 -X
+	</pre>
+	replacing ethX with the interface with the IP address 10.1.1.3. 
+	
+
+  <p><b>Questions:</b>
+	<ol>
+		<li>What happens to the traffic to client1 when Snort is running without any rules? 
+		</li><li>Is this a good thing?
+	        </li><li>Can you reconstruct contents of ducky.xml on <tt>router</tt> node?
+		</li><li>Based on Snort's output what can you say about the application?  What port does it connect to?
+		</li><li>What does the "-Q" option do in Snort? Use man page to find out.
+		</li><li>What does the "--daq nfq" option do in Snort? Use man page to find out.
+		</li></ol>
+	</ol>
+  </p>
+
+  
+  <span class="anchor" id="basicrules" />
+<h3>Write Rules to Guard Against Simple Requests</h3>
+<ol>
+ <li>In that terminal where snort is running stop it by using ctrl + c.
+  </li><li>Use any text editor to edit <tt>/etc/snort/rules/local.rules</tt>. 
+Add the following snort rule that prevents .xml files from being sent out,
+    <pre>reject tcp 100.1.0.0/16 ANY -> 100.1.10.10 [Port from Question 3] (msg: "XML Read Attempt Detected"; sid:1; content:".xml";)</pre>
+  </li><li>Using this rule as an example write a rule that prevents classified data from being sent to the outsider computer, but does not prevent it from being sent to any other computers. Classified data is stored in files with names that share a prefix "classified".
+ </li><li>Start snort using your new rule with the command:
+    <pre>
+      sudo snort  --daq nfq -Q -c /etc/snort/snort.conf  -A console
+    </pre>
+  </li><li>Log onto client1, client2 and outsider to see if these rules worked. Try using ftp on these nodes to read classified files. 
+  </li></ol>
+  <p><b>Questions:</b>
+    <ol start="8">
+      <li>What happens to FTP traffic from <tt>client1</tt> when you run snort? Show the FTP output as <tt>client1</tt> tries to exfiltrate "classified.txt" file.
+		</li><li>What rule did you use to secure the "classified" files?
+		</li><li>Capture and compare the network traffic for the serverwhen filtering these results using your configuration file and when no file is used. Can you recover the contents of classified files? 
+		</li><li>Can you think of any others files or extensions that should be filtered against? You can see what files <tt>server</tt> node has in its <tt>/srv/ftp</tt> folder.
+		</li></ol>
+	</ol>
+  </p>
+  </div>
+  
+<span class="anchor" id="defense" />
+<h3>Attack Defense</h3>
+<ol>
+ <li>Make sure you have your filtering rule engaged on Snort
+ </li><li>On <tt>outsider</tt> node install <tt>nmap</tt>:
+    <pre>
+      apt update -y
+      apt install nmap -y
+      </pre>
+ </li><li>Run:
+    <pre>
+      nmap 100.1.10.0/24
+    </pre>
+    to scan the server network, and check your Snort output.
+
+ <li>On <tt>outsider</tt> node run:
+   <pre>
+     ping -f server
+   </pre>
+   to generate a flood of ICMP traffic to <tt>server</tt> node. Create a new Snnort rule that detects any ICMP packets sent from the outside into the network.
+
+  </li></ol>
+  <p><b>Questions:</b>
+	<ol start="11">
+		</li><li>Show Snort alerts for NMAP.
+		</li><li>Show your new rule to detect ICMP traffic.
+		</li><li>Show Snort alerts for ICMP flood (a few alerts are enough).
+</li><li>Try changing the action in the new rule to "reject" instead of "drop".  What does this do to the traffic and why do you think this is?  Is this a good or a bad thing?
+  </ol>
+  </p>
+ </div>
+ 
+
+<span class="anchor" id="glitches" />
+<div class="level3">
+<h2>What can go wrong</h2>
+<ul>
+</li><li><b>Nodes Cannot Communicate with Server</b> If the server or route cannot communicate with each other when Snort running, make sure that the routing table is correct.  You can check the routing table with the command "route" on both of the computers. Also make sure that Snort is running. Without Snort, all traffic will be trapped in the forwarding queue and it will not reach its destination.
+</li></ul>
+
+</div>
+
+<span class="anchor" id="submission" /> 
+<h2>Submission Instructions</h2>
+
+You should submit a document with the following items (label each section):
+<ol>
+<li>An explanation of how Snort can be used to protect legacy systems
+</li><li>Answers to all the questions in this file
+</li></ol>
+
+</div>
+
+</body></html>

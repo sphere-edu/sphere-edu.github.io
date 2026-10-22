@@ -1,0 +1,925 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Prevention: Stateful Firewalls</title>
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>Stateful Firewalls</h1>
+<div class="author">Created by: Dr. Peter A. H. Peterson, UM Duluth (pahp@d.umn.edu) and Dr. Peter Reiher, UCLA (reiher@cs.ucla.edu), with Dr. Tanya Crenshaw, UP (crenshaw@up.edu)<br />
+</div>
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+<li><a href="#reading">Required Reading</a>
+<ol>
+	<li><a href="#firewalls">Firewalls</a>
+	<li><a href="#policy">Policy Design</a>
+	<li><a href="#nettools">Firewall and Network Testing Tools</a>
+	<ol>
+			<li><a href="#netfilter">iptables</a>
+			<li><a href="#nmap">nmap</a>
+			<li><a href="#ifconfig">ifconfig</a>
+			<li><a href="#telnet">telnet</a>
+			<li><a href="#netcat">netcat</a>
+	</ol>
+</ol>
+<li><a href="#intro">Introduction</a>
+<li><a href="#assignment">Assignment Instructions</a>
+<ol>
+	<li><a href="#setup">Setup</a>
+	<ol>
+		<li><a href="#saving">Saving your work</a></li>
+		<li><a href="#restoring">Restoring your work</a></li>
+	</ol>
+	<li><a href="#tasks">Tasks</a>
+	<ol>
+		<li><a href="#firewall">Firewall Configuration</a>
+	</ol>
+
+	<li><a href="#tips">Tips and Tricks</a>
+	<ol>
+		<li><a href="#envvars">Using environment variables</a></li>
+		<li><a href="#fwtest">Testing your firewall</a></li>
+	</ol>
+	<li><a href="#glitches">What Can Go Wrong</a>
+</ol>
+<!-- <li><a href="#extra">Extra Credit (optional section)</a> -->
+
+<li><a href="#submission">Submission Instructions</a>
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+
+<p />The purpose of this exercise is to introduce you to network access control schemes and the "principle of least privilege" through the use of <tt>iptables</tt> firewalls.
+
+<p />After this exercise, you will: 
+
+<ol type="1"><li>understand the basics of stateful firewalls 
+</li><li>be able to apply that knowledge to configure a basic firewall in Linux using iptables. 
+</li></ol><p />
+
+<span class="anchor" id="reading"></span>
+<p /><span class="anchor" id="firewalls"></span>
+<h2>Firewalls</h2>
+<h3>Stateless Firewalls</h3>
+
+<p />In the late 1980s, the Internet was just beginning to grow beyond its early academic and governmental applications into the commercial and personal worlds. The <a class="http" href="http://en.wikipedia.org/wiki/Morris_worm">Great Internet Worm</a> in November of 1988 infected around 6,000 hosts (roughly 10% of the Internet) in the first major infection of its kind and helped to focus research and awareness on securing computers from unauthorized access. It was in this environment that the first firewalls were written about and developed at Digital Equipment Corporation (DEC) and Bell Labs (AT&amp;T). 
+
+<p />The first functional firewalls inspected individual packet headers without regard for established connections, other packets, or their contents. These kind of firewalls became known as "packet filters" because they literally filtered the packets one by one according to a set of criteria, not unlike a quality control inspector on an assembly line. For TCP and UDP, these criteria could be reduced essentially to the source and destination addresses and ports in the packet header. For example, a packet filter could reject or drop any packets destined for port 23 (telnet) on host 10.10.10.10  from any address other than 10.10.10.11. This kind of filter could rapidly and inexpensively inspect and classify packets without using much space (although they were not very "smart"). 
+
+<p />Unsurprisingly, simple packet filters are not adequate for many applications, such as the <a class="http" href="http://en.wikipedia.org/wiki/Ftp">File Transfer Protocol</a> (FTP), because these protocols open additional connections on random ports that can not be anticipated or recognized by the firewall since it does not understand or consider the state of any connection. 
+
+<p />This kind of simple "packet filter" ultimately became known as a "stateless firewall". 
+
+<h3>Stateful Firewalls</h3>
+
+<p />"Stateful firewalls" arrived not long after "stateless firewalls". Stateful firewalls keep tables of network connections and states in memory in order to determine if a packet is part of a preexisting network connection, the start of a new and legitimate connection, or an unwanted or unrelated packet. This kind of firewall can recognize, for example, that a new connection on a random high port from a host with a preexisting FTP connection is a related connection and should be allowed. Another difference is that while a stateless firewall will allow all packets from acceptable hosts to an open port, a stateful firewall can be configured to allow packets to that port only if a legitimate TCP connection (or some other protocol) has already been established in some acceptable way. Understanding protocol state essentially gives stateful firewalls vastly more criteria in deciding whether to accept or reject a packet, which translates into finer granularity. 
+
+<p />The cutting edge of firewall design today is what is called an "application-layer firewall", which is a firewall that performs "deep packet inspection". This means that the firewall is capable of looking not just at the header of the packets and the state of the connection, but at the payload of the packet in context of what the application processing the packets will do. For example, an application-layer firewall could be used to block Java applets from HTTP traffic by inspecting the packets and stripping Java code or dropping the packets entirely.  In order to do this, it must understand what applet code looks like within the payload portion of any HTTP traffic stream. An application-layer firewall essentially has total control over the network stream, although this control comes at a significant expense in terms of CPU time and software complexity. 
+
+<p />Most firewalls in use today lie somewhere between the stateful firewall and the application-layer firewall. These firewalls function essentially as a stateful firewall, but may understand enough of a few applications to perform some application-layer tasks. It is also common to couple a primarily stateful firewall (such as netfilter/iptables) with separate application layer firewalls for individual applications. 
+
+
+<p /><span class="anchor" id="policy"></span> 
+<h3>Firewall Policy Design</h3>
+
+<p />People imagine many different things when they hear the term "<a class="http" href="http://en.wikipedia.org/wiki/Firewall">firewall</a>" in the context of computer networking. Some envision an impenetrable wall of flame <em>[at least I did --ed.]</em>. A Hollywood screenwriter might envision Harrison Ford battling kidnappers. A mechanic might envision the wall between the engine and passenger compartment of a car.  Yet mysteriously, every firewall is illustrated as a boring, red brick wall, typically with no fire in sight. 
+
+<p />Actually, the brick wall isn't that strange -- the name "firewall" comes from the brick walls in buildings placed to stop the spread of a fire from one area to another. But no matter who you are or what you see in your minds eye, the conventional wisdom is that firewalls are used to "keep the bad stuff out," whether you're protecting your desktop PC at home, your office LAN, or the Pentagon. However, those of us in the field of computer security often see firewalls more as a means of keeping things <em>in</em> rather than keeping them <em>out</em>. 
+
+<p />In one sense, these are two sides of the same coin -- but how you design something is (often unconsciously) directly related to how you view the problem, and this can lead to very different design choices when developing a firewall.  The goal of "keeping things out" is by definition, exclusively concerned with keeping external attackers "outside" the system, with no regard for what is inside that is worth protecting, and without considering threats (intentional or unintentional) that are <em>already</em> inside, like malicious or foolish employees. This is only half the picture. In contrast, "keeping things in"  by definition concerns itself with what is "inside" like sensitive data, privileged access, etc., and encourages the designer to consider <em>all</em> threats -- both internal and external -- against the protected resource. 
+
+<p />Practically speaking, these two goals often result in different default policies. The goal of "keeping things out" often results in a policy that by default allows anything not considered to be a threat. This is called a <strong>default allow</strong> policy, and the classic example of this kind of firewall allows <strong>all</strong> outbound traffic, but only allows "untrusted" inbound traffic to special services, such as a web server (which is then responsible for its own security). This is better than nothing, but is hardly secure. If an attacker can trick someone inside into opening a <a class="http" href="http://en.wikipedia.org/wiki/Trojan_horse_(computing)">trojan horse</a>, the malicious software can exploit the liberal egress policy by making connections to a malicious host on the Internet, which can be used to send messages to the now-compromised system. Incidentally, this is how the firewalls on most home routers are designed. 
+
+<p />On the other hand, the "keeping things in" policy usually results in a policy that by default <em>denies everything</em>, and allows only what is necessary for the proper functioning of a system. This embodies the principle of "<a class="http" href="http://en.wikipedia.org/wiki/Principle_of_least_privilege">least privilege</a>" and in the context of a firewall is called a <strong>default deny</strong> policy. A firewall configured this way allows only the handful of things that are strictly required. This limits inbound traffic as before, but also only allows outbound traffic to carefully chosen targets. For example, this might only allow oubound traffic to a secured mail server, ssh server, and the few web servers required for an employee to accomplish their job. This drastically limits the means by which traffic can enter <em>or</em> leave the network, and if an employee executes a trojan as in the last example, that malicious software will not be able to contact its evil master because the malicious Internet host will almost certainly not be in the list of allowed outbound connections. 
+
+<p />The obvious downside to a "default deny" firewall policy is maintenance and inconvenience -- it is harder to install in the first place, and any new network service or traffic type on the network must be explicitly allowed or it will not function. Allowing all outbound traffic significantly cuts down on this kind of maintenance -- at the cost of security. 
+
+<span class="anchor" id="nettools"></span> 
+<h3>Firewall and Network Testing Tools</h3>
+
+
+<span class="anchor" id="netfilter"></span> 
+<h4>iptables: set and clear rules in netfilter</h4>
+
+<p />
+<a class="http" href="http://en.wikipedia.org/wiki/Iptables">iptables</a> is actually the user space tool for administering the <tt>netfilter</tt> functions and tables in the Linux kernel, but the entire <tt>netfilter</tt> and <tt>iptables</tt> package is commonly referred to simply as <tt>iptables</tt>. <tt>iptables</tt> has several built-in tables of rules (such as <tt>filter</tt> and <tt>nat</tt>) , several built-in "chains" (which are sets of network traffic including the built-in INPUT, OUTPUT, and FORWARD for inbound, outbound, and routed traffic), a set of powerful loadable modules of matching stateful filters, the typical set of stateless criteria (such as source, destination, and interface), and a set of targets that represent what to do with a matching packet. These options allow sophisticated firewalls to be defined. 
+
+<p />
+<tt>iptables</tt> can be intimidating and confusing at first glance even for veteran sysadmins, but especially to users who are not used to configuring firewalls at all or are used to configuring firewalls through a GUI. <tt class="backtick">iptables</tt> expressive plugins further complicate the syntax. A typical <tt>iptables</tt> command looks something like this: 
+
+<p />
+
+<pre>$ iptables -t filter -i ethX -A INPUT -m state --state NEW -p tcp -s 192.168.0.1 --dport 23 -j REJECT
+</pre>
+
+<p />
+Upon closer inspection, <tt>iptables</tt> is revealed to be merely a command whose arguments define a single rule for packet filtering based on a number of possible criteria. <tt>iptables</tt> takes those arguments translates them one command at a time into priority-ordered filter rules in the Linux kernel. Thinking of <tt>iptables</tt> as a command with arguments can help demystify <tt>netfilter</tt> and the process of designing firewalls with <tt>iptables</tt> -- let's break down the above <tt class="backtick">iptables</tt> command and translate it into English: 
+
+<div><table style="width: 800px"><tbody><tr>  <td colspan="2" style="text-align: center;"><p />
+<strong>iptables command arguments</strong> </td>
+
+</tr>
+<tr>  <td>
+<p />
+ <strong>command/argument</strong> </td>
+  <td><p />
+<strong>translation</strong> </td>
+</tr>
+
+<tr>  <td>
+<p />
+<tt class="backtick">iptables</tt> </td>
+  <td><p />
+<em>We're going to use the iptables tool to insert a new rule into netfilter.</em> </td>
+</tr>
+
+<tr>  <td>
+<p />
+<tt class="backtick">-t&nbsp;filter</tt> </td>
+  <td><p />
+<em>This rule is going to go in the filter table, which is the built-in packet filtering table. This rule will apply only to:</em> </td>
+</tr>
+
+<tr>  <td>
+<p />
+<tt class="backtick">-i eth0</tt> </td>
+  <td><p />
+<em>packets that are inbound on device <tt>ethX</tt> (use <tt>-o ethX</tt> to match outbound packets) and which:</em> </td>
+</tr>
+
+
+<tr>  <td>
+<p />
+<tt class="backtick">-A&nbsp;INPUT</tt> </td>
+  <td><p />
+<em>packets that have been put into the <tt>INPUT</tt> chain either by the kernel or by some previous rule (use <tt>OUTPUT</tt> for the OUTPUT chain) and which:</em> </td>
+
+</tr>
+<tr>  <td>
+<p />
+<tt class="backtick">-m&nbsp;state&nbsp;--state&nbsp;NEW</tt> </td>
+  <td><p />
+<em>represent a new connection,</em> </td>
+</tr>
+<tr>  <td>
+<p />
+<tt class="backtick">-p&nbsp;tcp</tt> </td>
+
+  <td><p />
+<em>are Transmission Control Protocol (TCP) packets,</em> </td>
+</tr>
+<tr>  <td>
+<p />
+<tt class="backtick">-s&nbsp;192.168.0.1</tt> </td>
+  <td><p />
+<em>are from the host 192.168.0.1,</em> </td>
+</tr>
+<tr>  <td>
+<p />
+<tt class="backtick">--dport&nbsp;23</tt> </td>
+
+  <td><p />
+<em>and are destined for port 23.</em> </td>
+</tr>
+<tr>  <td>
+<p />
+<tt class="backtick">-j&nbsp;REJECT</tt> </td>
+  <td><p />
+<em>Reject any matching packet. Processing of all packets matching this rule will instantly jump to the built-in target REJECT, which means that the packet will be rejected by the kernel with some kind of network error message.</em> </td>
+</tr>
+</tbody></table></div>
+
+
+<p />
+A few other examples: 
+
+<p />
+
+<pre>$ iptables -p tcp --syn --dport 23 -m connlimit --connlimit-above 2 -j REJECT
+</pre>
+
+<p />
+This rule (from <tt>man&nbsp;iptables</tt>) allows 2 telnet connections per client host. Note that this rule uses the <tt>connlimit</tt> matching module, and rejects additional connections. 
+
+<p />
+
+<pre>$ iptables -A INPUT -i lo -j ACCEPT
+$ iptables -A OUTPUT -o lo -j ACCEPT
+</pre>
+
+<p />
+These rules accepts any inbound or outbound traffic on the internal loopback network device (an internal, logical network adapter the kernel uses for network communication internal to the computer) regardless of state, protocol, source, or destination address. The <tt>-i&nbsp;lo</tt> and <tt>-o&nbsp;lo</tt> arguments specify the "input interface" and "output interface" the packet arrived on. 
+
+<p />
+
+<pre>$IPTABLES -t filter -A INPUT -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+$IPTABLES -t filter -A OUTPUT -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+</pre>
+<p />
+These rules accept all INBOUND and OUTBOUND traffic regardless of interface, address, port or protocol. They use the <tt>state</tt> matching module, but accept all NEW, RELATED, and ESTABLISHED packets (which is basically all traffic). This rule is basically like having no firewall at all! 
+
+<p />
+<strong>NEW, RELATED, ESTABLISHED</strong> 
+
+<p />
+Think of your firewall as a security checkpoint in a big office building. There's usually two lines -- one for people with IDs, and one for people without IDs. If someone already has an ID, they can skip the long line, and go through. If they don't, they have to wait to get an ID card or visitor's pass. This is analogous to the distinction between <strong>NEW</strong> traffic versus <strong>RELATED</strong> or <strong>ESTABLISHED</strong> traffic (which you usually see together). Traffic marked <strong>NEW</strong> doesn't have an ID badge yet, because it is the first packet of a new stream of traffic. On the other hand, a packet of a <strong>RELATED</strong> or <strong>ESTABLISHED</strong> stream is part of something that by definition has already come through the firewall in the past. In other words, the firewall has already given that stream a "badge" (which is really an entry in an internal firewall data structure).  
+
+<p />
+Among other things, this means that firewalls are typically structured so that the first section passes all accepted <strong>RELATED,ESTABLISHED</strong> traffic first, and then carefully allows only certain kinds of <strong>NEW</strong> traffic. Why do it in that order? 
+
+<p />
+While this brief introduction to <tt>iptables</tt> should point you in the right direction, there are other features of <tt>iptables</tt> not included here that you may want to use for the exercise. There are many HOWTOs, tips, and tutorials online in addition to the <tt>iptables</tt> manpage; the exercise manual assumes that in order to complete the <tt>iptables</tt> exercise, you will need to <a class="http" href="http://www.google.com">do some research</a> on your own. 
+
+<span class="anchor" id="nmap"></span> 
+<h4>nmap: network mapping port scanner</h4>
+
+<p />
+<a class="http" href="http://en.wikipedia.org/wiki/Nmap">Nmap</a> (<a class="http" href="http://www.insecure.org">homepage</a>) is a very popular "<a class="http" href="http://en.wikipedia.org/wiki/Port_scanner">port scanner</a>" that can be used to determine what kind of services are running on a remote or local host, perform <a class="http" href="http://en.wikipedia.org/wiki/Passive_OS_Fingerprinting">OS fingerprinting</a>, and many other tasks. Nmap is capable of performing many tasks in a "stealth mode" designed to not raise the suspicion of the victim, but some tasks require more obvious techniques. 
+
+<p />
+Nmap is incredibly powerful, but the basic functionality of the application is easy to use: 
+
+<p />
+
+<pre>$ sudo nmap yahoo.com
+
+Starting Nmap 4.20 ( http://insecure.org ) at 2007-09-22 21:33 PDT
+Warning: Hostname yahoo.com resolves to 2 IPs. Using 216.109.112.135.
+Interesting ports on w2.rc.vip.dcn.yahoo.com (216.109.112.135):
+Not shown: 1694 filtered ports
+PORT    STATE SERVICE
+25/tcp  open  smtp
+80/tcp  open  http
+443/tcp open  https
+
+Nmap finished: 1 IP address (1 host up) scanned in 29.990 seconds
+
+$ sudo nmap www.somehost.edu -P0
+Starting Nmap 4.20 ( http://insecure.org ) at 2007-09-22 21:34 PDT
+Interesting ports on dns.somehost.edu (33.xx.111.1):
+Not shown: 1677 filtered ports
+PORT     STATE  SERVICE
+53/tcp   open   domain
+80/tcp   open   http
+443/tcp  open   https
+2048/tcp open   dls-monitor
+2049/tcp closed nfs
+2053/tcp open   knetd
+2064/tcp closed dnet-keyproxy
+2065/tcp open   dlsrpn
+2067/tcp open   dlswpn
+2068/tcp open   advocentkvm
+2105/tcp open   eklogin
+2106/tcp open   ekshell
+2108/tcp open   rkinit
+2111/tcp open   kx
+2112/tcp open   kip
+2120/tcp open   kauth
+2121/tcp open   ccproxy-ftp
+2201/tcp open   ats
+2232/tcp open   ivs-video
+2241/tcp closed ivsd
+
+Nmap finished: 1 IP address (1 host up) scanned in 32.385 seconds
+</pre>
+
+<p />
+See the Nmap manpage or online documentation for advanced features. 
+
+<p />
+<span class="anchor" id="ifconfig"></span> 
+<h4>ifconfig: configure Linux network devices</h4>
+
+<p />
+<a class="http" href="http://en.wikipedia.org/wiki/Ifconfig">ifconfig</a> is the network interface configurator in Linux. It is most commonly used by users to see network addresses and statistics, but can also be used to enable and disable interfaces, set configuration options such as network addresses, and more. 
+
+<p />
+For the purposes of this exercise, <tt class="backtick">ifconfig</tt> will be used to determine what network addresses are running on what interfaces. 
+
+<p />
+To see the current interface configurations: 
+
+<p />
+
+<pre>$ ifconfig
+
+eth0      Link encap:Ethernet  HWaddr 00:00:5A:00:01:B3
+          inet addr:64.81.0.256  Bcast:64.81.40.255  Mask:255.255.255.0
+          inet6 addr: fe80::200:5aff:fe00:1b3/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:1826346 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1887951 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:691689933 (659.6 MiB)  TX bytes:1037280707 (989.2 MiB)
+          Interrupt:58
+
+eth1      Link encap:Ethernet  HWaddr 00:13:D4:04:44:CA
+          inet addr:10.10.10.10  Bcast:10.10.10.255  Mask:255.255.0.0
+          inet6 addr: fe80::213:d4ff:fe04:44ca/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:1165519 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:1549057 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000
+          RX bytes:428484191 (408.6 MiB)  TX bytes:1780325755 (1.6 GiB)
+          Interrupt:50
+
+lo        Link encap:Local Loopback
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:5808042 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:5808042 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:6895907043 (6.4 GiB)  TX bytes:6895907043 (6.4 GiB)
+</pre>
+<p />
+Note that <tt class="backtick">eth0</tt>'s address is 64.81.0.256, while <tt>eth1</tt>'s address is 10.10.10.10. This means that the two interfaces are on different networks.
+
+<span class="anchor" id="telnet"></span> 
+<h4>telnet: cleartext remote shell</h4>
+
+<p />
+<a class="http" href="http://en.wikipedia.org/wiki/Telnet">TELNET</a> (TELe-NETwork) is a cleartext remote terminal protocol. On its face, telnet is very simple; the user issues commands over a TCP socket, and the server replies with the results of those commands and waits for more input. In practice, this is complicated with various network and terminal emulation layers. Still, telnet is one of the simplest and oldest network protocols still in use. Due to its cleartext nature and low level access to the system, telnet is incredibly insecure -- it was common in the past for system administrators to log in as root using telnet on a hub network connection that could be sniffed by any sufficiently prepared attacker. 
+
+<p />
+Thanks to the advent of Secure Shell (ssh), active use of telnet servers has died off except for some specialized uses. One place where telnet lives on is debugging ASCII-based network services. For example, web pages can be retrieved by telnetting to HTTP servers, and emails can be sent by telnetting to SMTP servers. 
+
+<p />
+Telnetting to a suspected open port is still one of the fastest ways to see if a service is available or reachable. 
+
+<p />
+Here are a few sample uses of telnet: 
+
+<p />
+
+<pre>$ telnet yahoo.com 80
+
+Trying 66.94.234.13...
+Connected to yahoo.com.
+Escape character is '^]'.
+GET /
+...
+
+&lt;html&gt;&lt;head&gt; ...[web page data] ...
+&lt;/body&gt;
+&lt;/html&gt;
+
+Connection closed by foreign host.
+</pre>
+
+<p />
+
+<pre>$ telnet mailserver.net 25
+Trying 216.0.1.1...
+Connected to mailserver.net.
+
+Escape character is '^]'.
+220 mailserver.net ESMTP Postfix (Ubuntu)
+HELO sender.net
+250 sender.net
+MAIL FROM: me@sender.net
+250 Ok
+RCPT TO: me@mailserver.net
+250 Ok
+DATA
+354 End data with &lt;CR&gt;&lt;LF&gt;.&lt;CR&gt;&lt;LF&gt;
+Subject: test mail message
+test message
+.
+
+250 Ok: queued as 152CFB8802A
+^]
+
+telnet&gt; Connection closed.
+
+You have mail in /var/mail/me
+</pre>
+
+For this exercise, you will use <tt>telnet</tt> to test if a TCP port is open on a remote host. Telnetnetting to an IP and port (see above) should return a "connected" message if it is possible to connect to a running server.
+
+<span class="anchor" id="netcat"></span> 
+<span class="anchor" id="nc"></span> 
+<h4>netcat: a network swiss army knife</h4>
+
+<p />
+netcat (often <tt class="backtick">nc</tt> on some systems) is a Unix utility for creating and using TCP and UDP sockets. In a very simplified way, <tt class="backtick">netcat</tt> is like a telnet client and server without any built in protocol or terminal emulation. Another way of putting it is that <tt class="backtick">netcat</tt> is the bare essentials for creating a TCP or UDP socket and client, with hooks for using standard in and standard out for IO. 
+
+<p>There are too many cool uses of netcat to describe here. For the purposes of this exercise, we'll use netcat to create "fake" TCP or UDP servers that we can use to test firewall configurations.
+
+<h5>Creating fake TCP/UDP servers with netcat</h5>
+
+<p />
+Starting a fake listening server (a program that will accept connections on a port) is as simple as running: 
+
+<p />
+
+<pre>$ sudo nc -l 80         # we need sudo because 80 is a privileged port
+</pre>
+
+<p />
+... to start a listening TCP socket on port 80. Then, from the another host, you can either use telnet or nc to connect to the server you just started on the the first host. You should be able to type in one window and see output in the other if the network pipe is open. 
+
+<p />
+Testing UDP services is exactly the same -- you can use netcat for that, too. You need to start a listening UDP process on the receiving side, and a sending process on the sending side. If you are testing UDP traffic from a client to a server, you can do something like this: 
+
+<p />
+
+<pre>[server]$ nc -u -l 10000        # listen for UDP traffic on port 10000
+</pre>
+
+<p />
+Then on the client, do something like this: 
+
+<p />
+
+<pre>[client]$ nc -u server 10000    # connect to server via UDP on port 10000
+</pre>
+
+<p />
+After establishing the connection, enter some data from standard input (probably your keyboard). Input on the sender should appear on the receiving terminal. Hit ^C to close the programs. UDP is of course an unreliable network protocol, so it's possible that there will be errors in the text file. 
+
+<p />
+You can do any of this in reverse to test the connection from a server to a client. If you're able to transmit data, then the firewall is allowing communication.
+
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+
+<p />You are Wilbar Memboob, the Security Administrator of <a href="http://zork.wikia.com/wiki/FrobozzCo_International">FrobozzCo</a> (<em>"You name it, we make it"</em>).  You are looking to hire a new system administrator to replace the guy you just fired -- unfortunately, even though his resume looked great on paper and he interviewed well, once you put him at a console he clearly had no idea what he was doing. 
+
+<p />To him, proper permissions meant  that things worked; if it was secure then that was just icing on the cake. You should have done something when the other admins starting calling him  "J-ACCEPT" -- a.k.a. "accept all traffic". But it was when he changed the company firewall policy to <tt>-j ACCEPT</tt> and the internal LAN got exposed to some black hat <a href="https://en.wikipedia.org/wiki/Grue_%28monster%29">grues</a> that he signed his own pink slip. 
+
+<p />To keep this from happening again, you've created a little test for your new applicants to take. Unfortunately, before you can grade the applicants, you need to create an answer key. 
+
+<span class="anchor" id="assignment"></span> 
+<h2>Assignment Instructions</h2>
+
+<p>In the assignment portion of this exercise, you're going to create an answer key for the <tt>iptables</tt> portion of the "hiring exam." You'll need to swap in your nodes and complete the exercises below.
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>firewall</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your <tt>server</tt> node. <p /></ol></ol><p />
+
+<p />Changes to DETER nodes are lost when the nodes are swapped out. This means that you must manually save your work between working on nodes in order to keep it. However, <b>this exercise</b> includes experimental scripts to help you save and restore your work. 
+
+<p /><span class="anchor" id="save"></span> 
+
+<p />
+<h4>Saving your Work</h4>
+
+<p />After completing the firewall-related execises on the <tt>server</tt> node, cd into the <tt>/root</tt> directory and execute the script <tt>/root/submit.sh</tt>; like this: 
+
+<p /><pre>$&nbsp;./submit.sh</pre> 
+
+<p />...it will make a tarball of all the relevant files, including the firewall.sh script you have updated (it will also copy files for the POSIX Permissions lab, but you do not need to bother with them; you should ignore the errors). <strong>You must copy or move the created tarball into your group directory, otherwise it will be lost upon swapout.</strong> <b>Note: do not run submit.sh with sudo!</b>
+
+<p /><span class="anchor" id="restore"></span> 
+
+<p />
+
+<h4>Restoring Your Work</h4>
+
+<p />The <strong>experimental</strong> script <tt>/root/restore.sh</tt> on the <tt>server</tt> node, takes as input the path to a tarball created by <tt>submit.sh</tt> described above and restores the files to their proper locations on the system. This includes all the files you are asked to create or change in the first part, as well as the <tt>firewall.sh</tt> script for the second part. <b>Note: do not run restore.sh with sudo!</b>
+
+<div class="warning">
+<p />
+<img src="alert.png" />
+<b>WARNING:</b> These scripts do <strong>not</strong> back up all arbitrary changes you may have made to the node (e.g., changing a peripheral configuration file), and it does not "merge" system files with submission files -- <em>it only restores submission files copied by <tt>submit.sh</tt></em>. You shouldn't need to change anything else, but see <tt>submit.sh</tt> and <tt>restore.sh</tt> to see exactly what those scripts do, and do not delete any of your submission tarballs so that you can go back to an earlier version if need be. 
+</div>
+
+<p />To use the <tt>restore.sh</tt>, copy a tarball created by <tt>submit.sh</tt> into the <tt>/root/</tt> directory and execute this command: 
+
+<p />
+<pre>$&nbsp;./restore.sh&nbsp;username-permissions-123123123.tar.gz</pre> 
+
+<p />You will be asked if you want to automatically overwrite files, and if you want to selectively restore some files and not others. The options are self-explanatory. 
+
+<p />Finally, if you don't trust the scripts, you can always make your own backups into your group directory and restore them by hand if you prefer. 
+
+<div class="warning">
+<p />
+<img src="alert.png" />
+<strong>NOTE:</strong> You do not need to run the submit and restore scripts with sudo. However, if you use sudo to run <tt>submit.sh</tt>, your tarball will be named after the <tt>root</tt> user. This is OK -- just run <tt>sudo&nbsp;./restore.sh&nbsp;root-permissions-2134234243.tar.gz</tt>. 
+</div>
+
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>
+
+<p />Your task is to create an answer key for the following test: 
+
+<p />
+<h4>FrobozzCo Firewall Test</h4>
+
+<p />This test is a part of the application process for the administrator position at FrobozzCo. You will be presented with a number of tasks and questions; the tasks must be executed on the <tt>server</tt> node of the DETER experiment we have created for this purpose (you can use the <tt>client</tt> node for <a href="#fwtest">testing</a>). There are <b>no</b> short answer questions for this lab. See below for further instructions. 
+
+<p />
+
+<span class="anchor" id="firewall"></span>
+<h4>Firewall Configuration</h4>
+
+<p />The test server has a totally permissive firewall installed -- it accepts all inbound and outbound traffic from all ports, protocols, addresses, interfaces, and states. This is basically like having no firewall at all. 
+
+<p />Your task is to configure the firewall according to the principle of "least privilege". This means that it should be maximally restrictive while still permissive enough to allow a strictly defined set of tasks. While some of these rules can <em>also</em> be configured in the server software (this strategy is called <a class="http" href="http://en.wikipedia.org/wiki/Defense_in_depth_(computing)">defense in depth</a>), we want you to implement the rules in iptables <strong>only </strong>-- do not reconfigure the underlying software. 
+
+<p />The firewall has been copied into the directory <tt>/root/firewall/</tt> along with a script called <tt>extingui.sh</tt> to "put out the fire" and clear all the rules in case you make a mistake. The firewall is <strong>not</strong> enabled by default -- to enforce the rules, execute: 
+
+<p />
+<pre>/root/firewall/firewall.sh</pre> 
+
+<p />... as the <tt>root</tt> user or using <tt>sudo</tt>: 
+
+<p />
+<pre>sudo&nbsp;/root/firewall/firewall.sh</pre> 
+
+<p />This will load the rules and start enforcing them. To make sure that you are removing all iptables rules, you should run <tt>extingui.sh</tt> in <strong>between every invocation of firewall.sh</strong> or rules might "stick around" which can be very confusing if you are trying to debug the system. This can be done like this as root (or with <tt>sudo</tt> as above): 
+
+<p />
+<pre>/root/firewall/extingui.sh</pre> 
+
+<p />If you make the server inaccessible with broken rules, don't worry -- you can reboot the node in the DETER console, and since the firewall <em>is not enabled by default</em>, you can log in in order to fix it. Your files will still be on the experimental node <strong>as long as you don't swap out the experiment</strong>.  (Of course, you can permanently save your files in your home directory.) 
+
+<p />Finally, only your final product is evaluated -- not the number of times you have to reboot the server. You should expect to lock yourself out a few times. :-)
+
+<div class="warning">
+<p><img src='alert.png' /> Your experimental nodes have at least two networks. The first is a control network between your node and SPHERE. This is the network you use to connect to your nodes from your XDC. Your nodes also have an "experimental" network that connects all the machines in a given experiment. For this project, your experimental network connects <tt>server</tt> and <tt>client</tt></p>
+
+<p>The firewall only needs to limit the experimental network interface (the interface with the 10.0.x.x network) and should <strong>not</strong> ever limit the control network (172.30.x.x as of this writing) or you may cut yourself off from the node. The experimental interface is one of eth0-ethN and you can determine which using the command <tt>ifconfig</tt> and looking for the 10.x.x.x interface. Be warned that the specifc interface used may change with a reboot or different experimental node.</p>
+
+<p>See below for instructions on using environment variables to define the experimental interface in your firewall.sh script.</p>
+</div>
+
+<p /><strong>Here's what the firewall needs to do:</strong> 
+
+<ol>
+	<li><p /><strong>passively ignore</strong> any traffic inbound to the interface that says it's coming from the server itself (obvious spoof attempt). The server uses the localhost loopback device <tt>lo</tt> for internal traffic, so it should never see incoming traffic from its own IP on the experimental network interface. (See test case 11, below)</li>
+	<li><p />Allow all <em>established</em> traffic on the experimental network interface. Established or related traffic is traffic that is part of <em>previously accepted</em> new connections.</li>
+	<li><p />Accept <strong>new</strong> connections on the experimental network (10.0.x.x) of the types listed below:
+	<ol>
+		<li>Inbound TCP connections to the OpenSSH, Apache, and MySQL servers on their standard ports. (Test cases 1, 3, 5)
+			<ul><li><p />The MySQL server should <strong>only</strong> accept connections from the <strong>client</strong> host. </li>
+			</ul>
+		</li>
+		<li><p />Inbound UDP connections to the <strong>server</strong> ports 10000 to 10005 from the host <strong>client</strong>. (Test case 8)</li>
+		<li><p />Inbound ICMP <tt>ping</tt> requests. (Test case 6)</li>
+		<li><p />Outbound ICMP <tt>ping</tt> replies. (Test case 7)</li>
+		<li>Outbound TCP connections to any OpenSSH, SMTP, and Apache (on standard ports). (Test cases 2, 4) </li>
+		<li><p />Outbound UDP connections to the ports 10006 to 10010 on host <strong>client</strong> from the <strong>server</strong>. (Test case 9)</li>
+	</ol></li>
+  <li><p /><strong>passively ignore all other traffic</strong>. (Do not allow it or respond to it in any way.) (Test case 10)</li>
+</ol>
+
+<p />There are many online resources and tutorials for iptables configuration -- feel free to use them. Be aware, however, <strong>not all tutorials emphasize the principle of least privilege</strong> and may give you overly permissive advice! In order to properly configure the firewall, you must consider the basic ways the firewall can differentiate traffic and allow only the specific types you require to properly function. 
+
+<p />Please read the helpful advice in the next section for configuring and testing your firewall.
+
+</div>
+<span class="anchor" id="tips"></span>
+<div class="level3">
+<h3>Tips and Tricks</h3>
+
+This section includes important rules and tips for making sure that your answers are correct.
+
+<p />
+
+<span class="anchor" id="envvars"></span> 
+<h4>Use Environment Variables in your firewall.sh!</h4>
+
+<p />Your firewall script is only supposed to limit the traffic on the "experimental network" interface, as opposed to including the "control network" of DETER. If you block the control network, you're likely to lose connection to your node, or shut off networked file systems, etc. 
+
+<p />Unfortunately, different DETER nodes (the physical computers you are given) bring up their networks on different interfaces (and in general you can't control which nodes you get). This means that on one node, the experimental network might be on eth0, and on another node, it might be on eth4 (or any other ethN). This makes writing your script difficult because it is not 100% portable from one node to another. 
+
+<p />However, we can use an environment variable to substitute in the right interface. In the firewall.sh script, there is a variable declaration: 
+
+<p />
+<pre>ETH="eth0"
+</pre>
+<p />You can use this variable with the token $ETH -- the shell will substitute in its value at runtime. Use ifconfig to make sure that ETH is set to the right value for your experimental node (or update it). For example, use ETH in a hypothetical iptables command like this: 
+
+<p />
+<pre>iptables -A INPUT -i $ETH -j ACCEPT
+</pre>
+<p />This way, you only need to update the ETH variable if your interface changes, rather than every iptables call that specifies an interface. 
+
+<p />
+<span class="anchor" id="fwtest"></span> 
+<h4>How to test your firewall</h4>
+
+<p />Testing your firewall is easy; you just need to make sure that the allowed services are allowed, and that things that should be denied are denied. To do that, we'll use a few tools like telnet, netcat, and others. 
+
+<p />You may also have noticed that this experiment swaps in two nodes instead of one. One will be called <tt>client</tt> and the other will be called <tt>server</tt>. <tt>server</tt> is the node with the firewall and resources you want to protect, but you can use client to check to see if the firewall is doing its job. You can also use client as a target to see if the server's outbound rules are functioning properly, using tools such as nmap, telnet, nc, and others in the <a href="#tools">network tools portion of this document</a>. 
+
+<p />The following tests have been provided by Dr. Tanya Crenshaw from the University of Portland. While these test cases cannot guarantee a perfect firewall, they should help you understand if your firewall is meeting the guidelines.
+
+<h5>Firewall Test Cases</h5>
+
+
+
+<div class="warning">
+<p />
+<img src="idea.png" />
+<b>c$</b> indicates tests run from client node and <b>s$</b> indicates tests run from the server node
+<p />
+</div>
+
+<p>
+<table>
+<tr>
+<td>
+#
+</td><td  width='200'>
+Rule
+</td><td>
+Test
+</td><td  width='200'>
+Result
+</td>
+</tr>
+
+<tr>
+<td>
+1
+</td><td>
+Allow inbound traffic to the OpenSSH port.
+</td><td>
+<pre>
+c$ telnet server 22
+Trying 10.0.1.2...
+Connected to server.
+Escape character is '^]'.
+SSH-1.99-OpenSSH_4.2
+</pre>
+</td><td>
+SUCCESS: A connection on port 22 is established using the telnet tool.
+</td>
+</tr>
+
+<tr>
+<td>
+2
+</td><td>
+Allow outbound ssh traffic (established).
+</td><td>
+<pre>
+See well-formed reply from ssh server in Test #1:
+
+‘SSH-1.99-OpenSSH_4.2’
+</pre>
+</td><td>
+SUCCESS: The ssh server running on the server node replies to telnet’s connection request with the SSH version number.
+</td>
+</tr>
+
+<tr>
+<td>
+3
+</td><td>
+Allow inbound traffic to http traffic.
+
+</td><td>
+<pre>
+c$ telnet server 80              
+Trying 10.0.1.2...
+Connected to server.
+Escape character is '^]'. 
+</pre>
+</td><td>
+SUCCESS: A connection on port 80 is established using the telnet tool.
+
+
+</td>
+</tr>
+
+
+<tr>
+<td>
+4
+</td><td>
+Allow outbound http traffic (established).
+
+</td><td>
+<pre>
+c$ nc -q 1 server 80 <<< "GET /"
+</pre>
+
+<p>Any response from the web server, including a "400 Bad Request"</p>
+
+</td><td>
+SUCCESS: The Apache Web Server running on the server node replies to the client’s request.
+
+</td>
+</tr>
+
+<tr>
+<td>
+5
+</td><td>
+Allow inbound and outbound mySQL traffic
+
+</td><td>
+<pre>
+c$ [client]$ telnet server 3306            
+Trying 10.0.1.2...
+Connected to server.         
+Escape character is '^]'.
+K#HY000Host 'client-link0' is not allowed to connect to this MySQL serverConnection closed by foreign host.
+
+</pre>
+</td><td>
+SUCCESS: Connect to the MySQL server running on the server node using the telnet tool. Please note that although the firewall allows connections to MySQL (as shown by the phrase "Connected to server"), the MySQL server itself may respond with an error indicating that the host <tt>client</tt> is not allowed to connect to MySQL. You don't need to worry about that.
+
+
+</td>
+</tr>
+
+
+
+<tr>
+<td>
+6
+</td><td>
+Allow new inbound ping traffic.
+
+</td><td>
+<pre>
+c$ ping server
+PING server-link0 (10.0.1.2) 56(84) bytes of data.
+64 bytes from server-link0 (10.0.1.2): icmp_seq=0 ttl=64 time=0.412 ms
+
+
+</pre>
+</td><td>
+SUCCESS: Ping request from client is replied to by server.  Note that request is new traffic, while reply is established traffic.
+
+</td>
+</tr>
+
+
+
+<tr>
+<td>
+7
+</td><td>
+Allow new outbound ping traffic.
+
+
+</td><td>
+<pre>
+s$ ping client
+PING client-link0 (10.0.1.1) 56(84) bytes of data.
+64 bytes from client-link0 (10.0.1.1): icmp_seq=0 ttl=64 time=0.302 ms
+
+
+</pre>
+</td><td>
+SUCCESS: Ping request from server is replied to by client.  Note that request is new traffic, while reply is established traffic.
+
+</td>
+</tr>
+
+
+
+<tr>
+<td>
+8
+</td><td>
+Allow inbound UDP traffic on ports 10000:10005
+
+</td><td>
+<pre>
+s$ nc -u -l 10000
+hello
+
+c$ nc -u server 10000
+  (type ‘hello’)
+
+</pre>
+</td><td>
+SUCCESS: Traffic is allowed into the server on port 10000.  Run the same test for 10001:10005.
+
+</td>
+</tr>
+
+
+
+<tr>
+<td>
+9
+</td><td>
+Allow outbound UDP traffic on ports 10006:10010
+
+</td><td>
+<pre>
+c$ nc -u -l 10006
+hello
+
+s$ nc -u client 10006
+  (type ‘hello’)
+
+</pre>
+</td><td>
+SUCCESS: Traffic is allowed out of the server on port 10006.  Run the same test for 10007:10010.
+
+
+</td>
+</tr>
+
+
+
+<tr>
+<td>
+10
+</td><td>
+Disallow all other traffic
+</td><td>
+<p>We need to test other ports to make sure that all other network traffic is blocked. However, most ports do not have any services listening on them. Fortunately, we can open ports manually using the <tt>nc</tt> tool. To open a port on <tt>server</tt>, execute:</p>
+
+<p><pre>s$ nc -l PORTNUM</pre><p>
+
+<p>Then, on <tt>client</tt>, use <tt>telnet</tt> to attempt to connect to the open port:</p>
+
+<p><pre>c$ telnet server PORTNUM</pre></p>
+
+<p>If traffic is being dropped, <tt>telnet</tt> should hang; if it is hung, try pressing ^C to quit. If traffic is being rejected, you will get a "connection refused" message.</p><br />
+
+<p>In order to test the firewall in the other direction, you can reverse these commands -- that is, open ports on <tt>client</tt> and try to reach them from <tt>server</tt>.</p><br />
+
+<p>Finally, a failure to connect with this test <i>could</i> be a <i>false negative</i>. For example, if you are performing the test incorrectly, you might get a hang or a rejection -- but not because the firewall is working properly. Therefore, it is a good idea to do this test with the firewall up <i>and</i> down. With the firewall down, you should be able to connect to the open port. Typing in <tt>telnet</tt> will make characters appear on the <tt>nc</tt> side. Quit by quitting <tt>nc</tt> with ^C or by closing telnet (pressing ^] and then entering "quit").</p> 
+
+</td><td>
+SUCCESS: If the firewall is passively blocking traffic, connections should hang. Of course, this will only test individual ports you try. A comprehensive test would use a script to test every port and test UDP in addition to TCP, etc. A strong firewall design should ensure that all traffic is dropped except that which is explicitly accepted. 
+
+</td>
+</tr>
+
+
+
+<tr>
+<td>
+11
+</td><td>
+Prevent spoofing
+
+
+</td><td>
+<pre>
+Straighforward test unknown
+
+</pre>
+</td><td>
+NA
+</td>
+</tr>
+
+</table>
+</p>
+
+
+</div>
+
+<span class="anchor" id="glitches"></span>
+<div class="level3">
+<h3>What can go wrong</h3>
+
+<h4>1. Your firewall cuts off your access to the node.</h4>
+
+<p>If you have misconfigured your firewall, and it "locks you out," you can try to reboot your experimental nodes using the DETER interface. If that does not work, you will need to swap your nodes out and back in again, but beware that swapping your nodes out will destroy any work you have not backed up in your home directory.
+
+<p>Make sure you are using the environment variable to define the interface you are restricting -- this will help keep you from getting "locked out." See the <a href="#tips">tips and tricks</a> section for more information.
+
+</div>
+
+<!-- <span class="anchor" id="extra"></span> 
+<h2>Extra Credit</h2>
+
+This section describes any extra credit assignments, how to do them, what to measure, etc. If there are no extra credit assignments for this exercise remove this section from here and from the TOC.
+
+-->
+
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+<p />Submit a tarball created by <tt>submit.sh</tt> to your instructor. You <strong>must</strong> use a tarball created by this script so that it will correctly save the permissions of the directories. 
+
+
+</div>
+</body></html>
+

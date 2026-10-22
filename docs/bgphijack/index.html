@@ -1,0 +1,397 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>BGP: Prefix Hijacking</title>
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+
+<h1>BGP Prefix Hijack Attacks - ColoState</h1>
+<div class="author">Created by: Vamsi Kambhampati and Dr. Daniel Massey, Colorado State University. {vamsi, massey}@cs.colostate.edu<br>
+</div>
+
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+<li><a href="#reading">Required Reading</a>
+	<ol>
+		<li><a href="#bgp">Border Gateway Protocol</a>
+		<li><a href="#prefixhijacks">Prefix Hijacking Attacks</a>
+		<li><a href="#tools">Software Tools</a>
+			<ol>
+				<li><a href="#frr">FRR Routing Suite</a>
+				<li><a href="#traceroute">traceroute</a>
+				<li><a href="#netstat">netstat</a>
+			</ol>
+	</ol>
+<li><a href="#intro">Introduction</a>
+<li><a href="#assignment">Assignment Instructions</a>
+	<ol>
+		<li><a href="#setup">Setup</a>
+		<li><a href="#ni">Network Information</a>
+		<li><a href="#tasks">Tasks</a>
+			<ol>
+				<li><a href="#p1">Part 1: Understanding the Topology</a>
+				<li><a href="#p2">Part 2: Prefix Hijacking</a>
+				<li><a href="#p3">Part 3: Subprefix Hijacking</a>
+			</ol>
+		<li><a href="#glitches">What Can Go Wrong</a>
+	</ol>
+<li><a href="#submission">Submission Instructions</a>
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+
+<p>
+The purpose of this exercise is to introduce you to Border Gateway Protocol (BGP), which is the de-facto inter-domain routing protocol of the Internet, and familiarize you with prefix hijacking attacks. Hijacking attacks pose a significant threat to the Internet and can have devastating consequences on Internet services. However, effective defenses against these attacks have not yet been deployed in the Internet. This exercise will give you first hand account of how the attacks can be perpetrated, and will walk you through a prefix hijacking attack in a small testbed environment. In order to complete the assignment, you will need some basic understanding of routing protocols, understand how IP forwarding works and have experience with Unix command line. Experience with tools such traceroute, netstat, ftp and the FRR routing protocol suite is useful.
+</p>
+
+<p>
+After successfully completing this lab, you should be able to: 
+</p>
+<ol type="1">
+	<li>Understand the basics of BGP routing</li>
+	<li>Understand simple BGP route configuration using FRR</li>
+	<li>Understand the BGP prefix hijacking attacks</li>
+	<li>Understand a few basics of diagnosing routing problems</li>
+</ol> 
+
+
+<span class="anchor" id="reading"></span> 
+
+<h2>Required Reading</h2>
+<span class="anchor" id="bgp"></span> 
+<h3>Border Gateway Protocol</h3>
+
+<p>
+BGP is the de-factor inter-domain routing protocol of the Internet. The first version of the protocol was introduced in 1989 (RFC 1105) as a replacement to Exterior Gateway Protocol (EGP), and has since gone through several revisions. The current version-4 of the protocol (last updated in 2006) is described <a href="http://www.ietf.org/rfc/rfc4271">RFC 4271</a>.
+</p><p>
+
+BGP addresses the problem of exchanging reachability information between Autonomous Systems (AS). BGP speaking routers exchange routing information through a series of BGP <i>updates</i>. An originating BGP router announces an IP address <i>prefix</i> to its attached neighbors, which in turn propagate the information to other routers until some target router learns about the prefix and a route to reach the destinations in that prefix. BGP is a path vector protocol in which each path element is an Autonomous System Number (ASN). Before a router announces a prefix to its neighbors, it stamps its ASN into an <i>ASPATH</i> field of the update message. This way, a BGP router can detect and prevent routing loops (upon receiving a route update, the router will check if its ASN already exists in the ASPATH field of the route; if so, it will drop the route update). 
+</p><p>
+
+Unlike RIP or OSPF, BGP does not use route metrics, but rather uses a prioritized list of route selection criteria to select from multiple routes to the same destination prefix. The first selection rule is based on local policy of an AS, and the second rule is based on the AS path length. In other words, if two routes to a prefix <i>p</i> are equally preferred in an AS, but one route has a shorter ASPATH length, then that route is selected as the preferred route to reach the destinations in prefix <i>p</i>. Finally, BGP uses TCP as the underlying transport protocol for carrying routing updates and various other control messages.
+</p>
+Further reading:
+<ul>
+<li><a href="http://www.ietf.org/rfc/rfc4271" target="new">Border Gateway Protocol 4 </a>RFC 4271
+<li><a href="http://en.wikipedia.org/wiki/Border_Gateway_Protocol" target="new"> Border Gateway Protocol </a> Wikipedia article 
+</ul>
+
+<span class="anchor" id="prefixhijacks"></span> 
+<h4>Prefix Hijacking Attacks</h4>
+
+<p>
+The BGP protocol does not specify an authentication mechanism to verify routes. What this means is that any BGP router can announce any prefix as if it owns that prefix, or it could modify the route associated with a prefix to make it more preferable to its neighbors. Network operators explicitly configure BGP routers to establish peering relationships with other ASes to exchange routing information. But, they do not have control over who is allowed inside the BGP "world" (i.e., the global Internet routing space) or what routes they can inject into the global routing space. In addition, the complexity of global routing means network operators may not always know which AS owns a particular prefix, or what path is used to reach that prefix. Even if they do know, the BGP protocol itself does have the necessary mechanisms in place to authenticate prefix ownership (or the path to a specific prefix). A malicious entity may hijack the prefixes of other ASes by either compromising a BGP speaking router or by participating in global routing themselves. In some cases, BGP hijacks happen due to misconfigurations.
+</p>
+<div style="text-align: center;">
+<img src="phijack-example.png" alt="BGP prefix hijacking example"/>
+</div>
+<div style="text-align: center; font-weight: bold"> Figure 1: Example of BGP Prefix Hijacking </div>
+<p>
+
+In a <i>prefix hijacking</i> attack, a BGP speaking router announces a direct route to prefix <i>p</i> that it does not actually own or is authorize to announce. The neighboring BGP speakers either accept this route and replace the current route they have for prefix <i>p</i> or may reject it during the route selection process. To better understand these attacks, consider the example shown in Figure-1. Here, router asn1 is announcing a prefix 10.1.1.0/24. The announcement propagates through the network and reaches router asn3, which installs a route for 10.1.1.0/24 and sets the next hop to asn2. Now suppose a malicious router asn4 wants to hijack 10.1.1.0/24; it simply announces a route for 10.1.1.0/24 to its neighbor asn3. Assuming asn3 has not set local policies for 10.1.1.0/24, asn3 will select the route for 10.1.1.0/24 based on the ASPATH attribute. In this case, the route for 10.1.1.0/24 from asn1 has ASPATH:<65001, 65002>, while the route for 10.1.1.0/24 from the adversary has ASPATH:<65004>. Since the route from the adversary is shorter, router asn3 will select this route and forward any traffic to the destinations covered by 10.1.1.0/24 to router asn4.  
+</p><p>
+
+A special case of prefix hijacking attack is <i>subprefix hijack</i> attack. In this case, the attacker will announce a subprefix of a more general prefix to hijack part of the address space of the originating AS. Since the attacker is essentially announcing a new prefix, and since IP forwarding prefers longer prefixes, all traffic associated with the destinations covered by the subprefix will flow towards the attacker. Considering the example in Figure-1 again, let us say this time the attacker announces a route for 10.1.1.0/25 (i.e., subprefix of 10.1.1.0/24). Router asn3 will learn about both 10.1.1.0/24 (next hop: asn2) and 10.1.1.0/25 (next hop: asn4). However, when a packet arrives at asn3 for destination 10.1.1.1, it will forward the packet to asn4 due to longest prefix matching. On other hand, if a packet arrives at asn3 for destination 10.1.1.200, it will forward it to asn2 since that address matches the prefix 10.1.1.0/24.
+</p>
+
+To learn more about prefix hijacking, refer:
+<ul>
+<li><a href="http://en.wikipedia.org/wiki/IP_hijacking" target="new">IP Hijacking</a> Wikipedia article
+<li><a href="http://irl.cs.ucla.edu/papers/originChange.pdf" target="new">PHAS: A Prefix Hijack Alert System</a> Academic paper (optional reading)
+<li><a href="https://web.eecs.umich.edu/~zmao/Papers/sigcomm08_ispy.pdf" target="new">iSPY: Detecting IP Prefix Hijacking on My Own </a> Academic paper (optional reading)
+</ul> 
+
+<span class="anchor" id="tools"></span>
+<h3>Software Tools</h3>
+
+<span class="anchor" id="frr"></span> 
+<h4>FRR Routing Suite</h4>
+
+<p>
+FRR is Linux implementation of a suite of popular routing protocols. It is cross-platform routing software package which supports many routing protocols including RIP, RIPng, OSPFv2, OSPFv3 and BGP. FRR can be installed on a general purpose machine to turn it into a software based router. Moreover, it provides a simple interface to setup static routing on a host. For this lab exercise, we are particularly interested in the BGP routing part of FRR. Throughout the exercise we assume FRR as running on Ubuntu Linux.
+</p><p>
+
+FRR stores its configuration files in <tt>/etc/frr/</tt> directory, and has a separate configuration file for each of the routing protocols it supports. For instance, the BGP routing configuration is stored in <tt>/etc/frr/bgpd.conf</tt>. The configuration file <tt>/etc/frr/daemons</tt> specifies which of the routing protocol daemons are enabled on the host (set to "yes" to enable a protocol). Configuration information can be setup manually before starting a particular protocol daemon, or they can be entered in real-time using a special command line utility called <tt>vtysh</tt>. FRR also supports a <tt>telnet</tt> interface to enter configuration commands in real-time. For example, the BGP instance can be configured in real-time by telnetting to <tt>localhost</tt> and specifying <tt>bgpd</tt> as the port number (<tt>bgpd</tt> is an alias to port 2605).
+</p><p>
+
+The following is the BGP configuration file on one of the testbed hosts.
+<pre>
+!
+hostname asn1
+password test
+enable password test
+bgp config-type cisco
+!
+!
+router bgp 65001
+no synchronization
+bgp router-id 10.1.0.1
+network 10.1.1.0/24
+neighbor 10.2.0.2 remote-as 65002
+!
+</pre>
+Note that the BGP configuration used here is overly simple. Real Internet BGP routers have many more options and their configuration can be quite complex. For more details follow the FRR BGP documentation link below. The command <tt>router bgp 65001</tt> sets up the BGP instance on a (software-)router named <b>asn1</b> that belongs to ASN <b>65001</b>. The command <tt>network 10.1.1.0/24</tt> tells this router to announce a route for prefix <b>10.1.1.0/24</b> to its neighbor(s). The neighbor itself is specified using the command <tt>neighbor 10.2.0.2 remote-as 65002</tt>, i.e., the neighbor's IP address is <b>10.2.0.2</b> and its ASN is <b>65002</b>. Note that in order to exchange BGP routes, the router asn1 must have a direct connection to neighboring router 10.2.0.2, or it must be reachable from router asn1 (using perhaps some intermediate hops). The neighboring router will also have a similar configuration entry for router asn1. Finally, the login password and the enable mode password for asn1 are set to "<b>test</b>".
+</p><p>
+
+To change the configuration in real-time on asn1, you can use the telnet interface. The following commands show how to remove the route for prefix 10.1.1.0/24 on asn1. Note that FRR does not allow telnet from remote machines by default, so the user must be logged in to the machine configured as the router (in this case asn1).
+<pre>
+telnet localhost bgpd
+enable
+config terminal
+router bgp 65001
+no network 10.1.1.0/24
+end
+</pre>
+Use the password "test" to both login via telnet and to enter the "enable" mode.
+</p>
+
+FRR documentation, including BGP configuration can be found in the following link:
+<ul>
+<li><a href="http://docs.frrouting.org/en/stable-8.5/" target="new">FRRouting User Guide</a>
+</ul>
+
+<span class="anchor" id="traceroute"></span> 
+<h4>Traceroute</h4>
+
+<p>
+The <tt>traceroute</tt> tool prints the route packets take to a destination host. Internally, traceroute sends a series of messages (commonly ICMP) with IP TTL value set to the number of hops it wants to discover. Since the TTL expires upon reaching the target hop, the node at that hop will respond with an error message. This way, traceroute can figure out the path to a destination. Note that some intermediate hops may not respond with an error message, in this case traceroute will print a "*". For more information about traceroute and its options, check out man page (on any Linux machine): <tt>man traceroute</tt>
+</p>
+
+<span class="anchor" id="netstat"></span> 
+<h4>Netstat</h4>
+
+<p>
+The <tt>netstat</tt> command line utility can be used to print the IP forwarding table of a host. It can also be used to print several useful information about a host's network activity, including listing active connections for each protocol, packet statistics and so forth. For more information about netstat and its options, check out man page (on any Linux machine): <tt>man netstat</tt>
+</p>
+
+
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+
+<p>
+The exercise is divided into three parts. In the first part, you will observe the characteristics of the network when there is no hijacking attack and retrieve a file from an ftp server. In the second part, you will assume the role of an attacker and perform prefix hijacking attack. The goal here is to take over the address of the ftp server and serve a forged document. If you were a real attacker, you can do anything from stealing passwords to distributing malware. In the last part, you will perform subprefix hijacking attacks and observe the differences between prefix hijacking and subprefix hijacking.
+</p><p>
+
+The exercise will carefully walk you through BGP configuration to conduct the attacks and will also teach you various tools to identify routing information on hosts and routers.
+</p>
+
+<span class="anchor" id="assignment"></span>
+<h2>Assignment Instructions</h2>
+
+<span class="anchor" id="ni"></span> 
+<h3>Network Information</h3>
+
+<div style="text-align: center;">
+<img src="topo.png" alt="Testbed network on SPHERE"/>
+</div>
+<div style="text-align: center; font-weight: bold"> Figure 2: Testbed network on SPHERE</div>
+
+<p>
+The network in this exercise is designed to simulate a small scale Internet with several Autonomous Systems and a simple client-server scenario. Figure 2 shows the network, where each AS has a single router. The client, server, and attacker hosts all directly attach to their adjacent routers inside the respective ASes. The ftp server attaches to router asn1 (which belongs to AS 65001) and has the IP address 10.1.1.2, while the client attaches to router asn3 (AS 65003) and has the IP address 10.5.0.2. The attacker ftp server attaches to router asn4 (AS 65004) and also has the IP address 10.1.1.2. Initially, the attacker ftp server is not accessible from the anywhere in the network except router asn2 i.e., only router asn4 knows about the attacker. The router asn1 announces a route for 10.1.1.0/24 network, which covers the real ftp server 10.1.1.2, therefore any packets sent to this address will reach the ftp server (until the prefix is hijacked).
+
+<span class="anchor" id="setup"></span>
+</p><div class="level3"><h3>Setup</h3>
+
+  <ol type="1">
+   <li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>. 
+  </li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>bgphijack</font> as Lab name. Your topology will look like shown in Figure 2.
+</li><li>After setting up the lab,access your nodes.
+</li></ol><p />
+
+
+
+</p><p>
+The majority of this exercise is easiest to complete simply via command line on the relevant virtual machines.
+
+</p></div>
+
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>
+<div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+
+<span class="anchor" id="p1"></span>
+<h4>Part 1: Understanding the Topology</h4>
+
+<p>
+  Run the following commands on <tt>asn3</tt> and <tt>asn2</tt> machines to remove a specific route injected by the kernel:
+  <p><pre>
+  sudo ip route del 10.1.1.0/24
+    </pre>
+  <P>
+    Login to the <tt>client</tt> machine and perform the tasks below. Note your answers on the answer sheet.
+
+<div class="ai">
+    <b>AI-option:</b> If you use AI to <b>run the commands</b> for you, you must provide <i>hand-written</i> answers to ALL the questions noted in the rest of this exercise. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
+	    </ol>
+</div>
+<ol>
+<li> On the command prompt run: <tt> traceroute -n 10.1.1.2 </tt> and record the output of the command (if you see * *s in the output, run the command again). Explain the path from client host 10.5.0.2 to the ftp server host 10.1.1.2. Specifically, note down the intermediate hops and their IP addresses. How many hops away is the ftp server from the client?
+<li> Run <tt> netstat -rn </tt> and record the output. Explain how the client is able to send packets to 10.1.1.2, i.e., what route is the client using to reach the server 10.1.1.2 (don't forget to list the gateway address and mask value). 
+<li> Run <tt> sudo vtysh -c "show ip route" </tt> and record the output. Does the "information" (not the raw output) differ from the above output? If so, what additional information can you learn from this output?
+<li> Run <tt> ftp 10.1.1.2 </tt> and at the prompt for username type <tt>anonymous</tt>, type some random text for password. Once you are connected to the ftp server, type <tt>get README</tt> at the ftp prompt. After the README file finishes downloading, logout (type <tt>exit</tt>) and read and contents of the README file. What does it say? 
+</ol>
+</p>
+
+<p>
+Now login to <tt>asn3</tt> machine and perform the following tasks (it helps to keep a separate terminal for each host you need to login):
+<ol>
+<li value="5"> Run <tt> sudo vtysh -c "show ip bgp" </tt> and record the output. What is the AS path to reach 10.1.1.0/24 ?
+</ol>
+</p>
+
+<p>
+Login to <tt>asn2</tt> machine and perform the following tasks:
+<ol>
+<li value="6"> Run <tt> sudo vtysh -c "show ip bgp" </tt> (no need to record output). What AS path will be used to reach an IP address 10.1.1.2? 
+</ol>
+</p>
+
+
+<span class="anchor" id="p2"></span> 
+<h4>Part 2: Prefix Hijacking</h4>
+
+<p>
+In this part, you will become the adversary and take over the prefix 10.1.1.0/24. Your goal is to mislead the client into accessing your false ftp server. To hijack the prefix, first login to <tt>asn4</tt> and run the command <tt>telnet localhost bgpd</tt>. Enter "test" when prompted for the password. You will then get a prompt from the BGP instance running on asn4. At this prompt, run the following series of commands:
+</p>
+
+<pre>
+enable   #type "test" when prompted for password
+config terminal
+router bgp 65004
+network 10.1.1.0/24
+end
+exit
+</pre>
+You will also need to insert a fake route into <tt>asn4</tt> node, or BGP will refuse to advertise the route you hijacked. Using <tt>ifconfig</tt> discover the interface that has the 10.6.1.1 IP address, e.g., <tt>ethX</tt>. Then type:
+<pre>
+  sudo ip route add 10.1.1.0/24 dev ethX
+  </pre>
+Then on <tt>asn4</tt> type:
+<pre>
+sudo iptables -t nat -F
+sudo iptables -t nat -A PREROUTING -d 10.1.1.2 -m ttl --ttl-gt 1 -j NETMAP --to 10.6.1.2
+sudo iptables -t nat -A POSTROUTING -s 10.6.1.2 -j NETMAP --to 10.1.1.2
+</pre>
+These lines will ensure that <tt>asn4</tt> rewrites source and destination IPs to hide the presence of hijacking and also to make the <tt>attacker</tt> node properly process packets sent to 10.1.1.2.
+<p>
+After completing this process, <font color="red">wait at least 5 minutes</font> (so that the routes are propagated throughout the network) and log back into the <tt>client</tt> host. Now, do the following:
+</p>
+
+<ol>
+<li>Run <tt> traceroute -n 10.1.1.2 </tt> and record the output of the command (if you see * *s in the output, run the command again). Explain the path from client host 10.5.0.2 to the ftp server 10.1.1.2. How many hops away is the ftp server from the client this time? Is there a difference in output from the same command in Part-1?
+<li> Run <tt> ftp 10.1.1.2 </tt> and at the prompt for username type <tt>anonymous</tt>, type some random text for password. Once you are connected to the ftp server, type <tt>get README</tt> at the ftp prompt. After the README file finishes downloading, logout (type <tt>exit</tt>) and read and contents of the README file. What does it say? Did the contents of README file differ from the output in Part-1?
+</ol>
+
+<p>
+Login to <tt>asn3</tt> machine and perform the following tasks:
+<ol>
+<li value="3"> Run <tt> sudo vtysh -c "show ip bgp" </tt> and record the output. What is the AS path to reach 10.1.1.0/24? Did the AS path differ from the last time (i.e., part-1)?
+</ol>
+</p>
+
+<p>
+Login to <tt>asn2</tt> machine and perform the following tasks:
+<ol>
+<li value="4"> Run <tt> sudo vtysh -c "show ip bgp" </tt> (no need to record output). What AS path will be used to reach an IP address 10.1.1.2? What AS path will be used to reach an IP address 10.1.2.2?
+</ol>
+</p>
+
+
+<span class="anchor" id="p3"></span> 
+<h4>Part 3: Subprefix Hijacking</h4>
+
+<p>
+In this part, you will become the adversary again and take over a subprefix (10.1.1.0/25) of the prefix 10.1.1.0/24. You will achieve a similar goal as before i.e., mislead the client into accessing your server, but there are some important differences. To hijack the subprefix, login to <tt>asn4</tt> and run the command <tt>telnet localhost bgpd</tt>. Enter "test" when prompted for the password. You will get a prompt from the BGP instance running on asn4. At this prompt, run the following series of commands:
+</p>
+
+<pre>
+enable   #type "test" when prompted for password
+config terminal
+router bgp 65004
+no network 10.1.1.0/24
+network 10.1.1.0/25
+end
+exit
+</pre>
+Again, you must trick BGP into believing there is route to 10.1.1.0/25. Delete the old route via the interface you discovered (e.g., <tt>ethX</tt>) and insert new one:
+<pre>
+  sudo ip route del 10.1.1.0/24
+  sudo ip route add 10.1.1.0/25 dev ethX
+  </pre>
+<p>
+After completing this process, <font color="red">wait at least 5 few minutes</font> (so that the routes are propagated throughout the network) and log back into the <tt>client</tt> host and do the following:
+</p>
+
+<ol>
+<li> Run <tt> traceroute -n 10.1.1.2 </tt> (no need to record output). How many hops away is the ftp server 10.1.1.2 from the client this time? Is there a difference in output from the same command in Part-2?
+<li> Run <tt> ftp 10.1.1.2 </tt> and at the prompt for username type <tt>anonymous</tt>, type some random text for password. Once you are connected to the ftp server, type <tt>get README</tt> at the ftp prompt. After the README file finishes downloading, logout (type <tt>exit</tt>) and read and contents of the README file. Did the contents of README file differ from the output in Part-2?
+</ol>
+
+<p>
+Login to <tt>asn3</tt> machine and perform the following tasks:
+<ol>
+<li value="3"> Run <tt> sudo vtysh -c "show ip bgp" </tt> and record the output. What is the AS path to reach 10.1.1.0/25? Did the AS path differ from Part-2? What is the AS path to reach 10.1.1.0/24?
+</ol>
+</p>
+
+<p>
+Login to <tt>asn4</tt> machine and perform the following tasks:
+<ol>
+<li value="4"> Run <tt> sudo vtysh -c "show ip bgp" </tt> (no need to record output). What AS path will be used to reach an IP address 10.1.1.2?
+</ol>
+</p>
+
+
+<span class="anchor" id="glitches"></span>
+
+<div class="level3">
+<h3>What can go wrong</h3>
+<p>Specific problems:
+ 
+</p><ul> 
+<li>If you not able to connect to the ftp server, or if cannot ping any of the nodes, then most likely the bgp routing daemon is not working. First, run <tt> ps -ef | grep bgpd </tt>, if did not see the <tt>bgpd</tt> task, run the following command on each of the machines (i.e., client, server, attackers, asn1 through asn4): <tt>sudo service frr restart</tt> 
+<li>If traceroute is producing * * *s for intermediate hops, run the command once again. 
+<li>Do not run traceroute without the "-n" command line option. This option will prevent traceroute from resolving IP addresses to names. We dont need the names for this exercise.
+<li>You must wait at least 5 minutes after making BGP configuration changes. Otherwise, you might run into temporary routing loops during the BGP route convergence process. During this time, your commands will produce incorrect results.
+</ul> 
+
+</div>
+
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+Submit a .pdf file to your instructor containing your answers to:
+<ol>
+<li>Part 1 Questions 1-6</li>
+<li>Part 2 Questions 1-4</li>
+<li>Part 3 Questions 1-4</li>
+</ol>
+
+</div>
+
+</body></html>

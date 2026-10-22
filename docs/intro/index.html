@@ -1,0 +1,969 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Intro: Unix/Linux</title>
+
+
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css/common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css/screen.css">
+
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>Intro to Unix/Linux</h1>
+<div class="author">Created by: Peter A. H. Peterson, Dr. Peter Reiher, UCLA. {pahp, reiher}@cs.ucla.edu<br>
+</div>
+
+<!--
+<div class="due-date">Due: Monday, April 11th, 2011 11:59PM via CourseWeb</div>
+-->
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+<li><a href="#reading">Required Reading (optional section)</a>
+	<ol type="1">
+	<li><a href="#deterinst">SPHERE Instructions</a></li>
+	<li><a href="#ssh">Secure Shell and Copy</a></li>
+	<li><a href="#shell">the Unix shell</a></li>
+	<li><a href="#man">the Unix manual</a></li>
+	<li><a href="#sudo">sudo</a></li>
+	<li><a href="#syslog">read and search in files</a></li>
+	<li><a href="#find">searching for files</a></li>
+	<li><a href="#tar">compress files</a></li>
+	<li><a href="#screen">screen</a></li>
+	<li><a href="#toplist">list processes</a></li>
+	<li><a href="#elinks">text web client</a></li>
+	<li><a href="#hex">text editors</a></li>
+	</ol>	
+<li><a href="#intro">Introduction</a>
+
+
+<li><a href="#assignment">Assignment Instructions</a>
+<ol>
+<li><a href="#setup">Setup</a>
+<li><a href="#tasks">Tasks</a>
+	<ol>
+	<li><a href="#filehunt">Treasure Hunt</a></li>
+	<li><a href="#infohunt">Information Hunt</a></li>
+	<li><a href="#wrapup">Wrap it up!</a></li>
+	</ol>
+<li><a href="#glitches">What Can Go Wrong</a>
+</ol>
+<li><a href="#extra">Extra Credit (optional section)</a>
+
+<li><a href="#submission">Submission Instructions</a>
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+
+<p />The "intro" lab is an introduction to some basic UNIX utilities.
+
+<p />The lab itself has three parts:
+<ol>
+<li>Use the command line to find five hidden JPG images.</li>
+<li>Use the Internet to find answers to a few simple questions.</li>
+<li>Make a "tar ball" of your answers and the images, and submit it to your instructor.</li>
+</ol>
+
+<p />Finally, in addition to completing the lab, we recommend you spend some additional time playing around with utilities and reading <tt>man</tt> pages if you are unsure of your UNIX or command-line skills. You are welcome to use SPHERE for this purpose. 
+
+<p />
+
+<span class="anchor" id="reading"></span> 
+<h2>Required Reading</h2>
+<span class="anchor" id="deterinst"></span> 
+<h3>SPHERE Instructions</h3>
+<p />In order to complete this lab, you'll need to follow the instructions for <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">for creating and running experiments</a>. You'll also need to learn a few things about the Unix command line (if you don't already know them).
+
+<div dir="ltr" id="content" lang="en"><span class="anchor" id="top"></span>
+
+<p />
+
+In this section, we will briefly discuss how to use the tools you <em>may</em> need to complete these labs. Most of these tools are very well documented. Your first reference should be the <tt>man</tt> page for the tool, usually accessed by executing <tt>man&nbsp;program</tt> on the command line. However, these tools are so fundamental to the command line that many of them have extensive documentation, tips, and tutorials available online. Google is your friend. 
+<p />
+
+<span class="anchor" id="ssh"></span> 
+
+<p />
+
+
+<h3>Secure Shell and Copy</h3>
+
+<p />SSH is short for Secure Shell, an encrypted, remote, command line terminal client. SCP is short for Secure Copy, and is used to transfer files from host to host using encrypted channels. Since you will use SSH and SCP to interact with SPHERE, your first step should be to read SPHERE's <a href="https://docs.sphere-testbed.net/experimentation/xdc/#reaching-an-xdc-via-ssh">introduction to SSH and SCP for students</a>.
+
+
+<span class="anchor" id="shell"></span> 
+
+<p />
+
+
+<h3>the Unix shell</h3>
+
+
+<p />
+The Unix shell is the precursor to almost all modern "command line interfaces". When you ssh into SPHERE, you'll be using a "shell."  Because similar interfaces are so common across many systems, we'll start by providing a translation key for common activities: 
+
+<ul><li><p />
+change directories: <tt>cd&nbsp;[directory]]</tt> 
+</li><li><p />
+list files in directory: <tt>ls&nbsp;[directory]</tt> 
+</li><li><p />
+move/rename file: <tt>mv&nbsp;oldfile&nbsp;newfile</tt> 
+</li><li><p />
+copy a file: <tt>cp&nbsp;oldfile&nbsp;newfile</tt> 
+</li><li><p />
+delete a file: <tt>rm&nbsp;file</tt> 
+</li><li><p />
+remove an empty directory: <tt>rmdir&nbsp;directory</tt> 
+</li><li><p />
+create an empty directory: <tt>mkdir&nbsp;directory</tt> 
+</li><li><p />
+read a file: <em>see below</em> 
+</li><li><p />
+kill a process: <tt>^C</tt> (control-C) 
+</li><li><p />
+stop a process: <tt>^Z</tt> (control-Z) 
+</li><li><p />
+restart a stopped process: <tt>fg</tt> 
+</li><li><p />
+pause the terminal output: <tt>^S</tt> (control-S) 
+</li><li><p />
+resume the terminal output: <tt>^Q</tt> (control-Q) 
+
+</li></ul><p />
+... and many more. Most of these commands also have additional options. See <tt>man&nbsp;command_name</tt> for more information. 
+
+<p />
+While this serves as a basic introduction, the shell's advanced features are too complicated to describe here. 
+
+<div class="infobox">
+<h4>For more information...</h4>
+
+<p />There are many good resources online for learning about the Unix shell: 
+
+<ul><li><p />
+<a class="http" href="http://www.ee.surrey.ac.uk/Teaching/Unix/">Introduction to Unix</a> 
+</li><li><p />
+<a class="http" href="http://www.linuxcommand.org/lc3_learning_the_shell.php">Learning the Shell</a> 
+</li><li><p />
+<a class="http" href="http://people.fas.harvard.edu/~lib113/reference/unix/bourne_shell.pdf">An Introduction to the Unix Shell by S. R. Bourne</a>
+
+</li></ul><p />
+If you're interested in learning more, a great book on the subject is O'Reilly Media's <em><a class="http" href="http://oreilly.com/catalog/9781565923478">Learning the bash Shell</a></em> by Cameron Newham and Bill Rosenblatt -- although it is much more advanced than you will need for the typical exercises on SPHERE.
+</div>
+
+
+
+<span class="anchor" id="man" />
+<h3>the Unix manual: the hitchiker's guide to Unix</h3>
+
+<p />
+<tt>man</tt>, the Unix manual, is where all the "help files" live in Unix. Practically every command has a helpful man page, which you can access by typing <tt>man&nbsp;command_name</tt>. It should be your first stop when looking for info about how tools work. 
+
+<div class="infobox">
+<p />
+<img src="idea.png" />A few handy key strokes for perusing manpages: 
+
+<ul><li>space goes forward a page 
+</li><li>return goes forward a line 
+</li><li>b goes back a page 
+</li><li>/ searches forwards 
+</li><li>? searches backwards 
+</li><li>q quits 
+</div>
+
+</li></ul><p />
+Learning to read man pages is a skill. First, spend some time getting to know the general format: a one-line description, followed by a syntax synopsis (items in square brackets are optional), longer description, options, other arguments, various other documentation, optional examples, and references. If you're looking for a command-line switch to do something, chances are it should be in the first few sections of the manpage. Or, skip to the end and see if any examples do what you want. In any case, practice with "/" and "?" to search for text. 
+
+<p />
+For example, suppose you were reading the manpage for <tt>find</tt> and you wanted to know how to keep <tt>find</tt> from looking in other filesystems connected to the machine (such as network drives). The manpage for <tt>find</tt> is over 1,000 lines! Who has time to read the whole thing? However, if you use the "/" forward search key and enter "filesystem," the second match is for the command-line switch to do just that (<tt>-mount</tt>). 
+
+<p />
+
+
+<h4>Other sources of information</h4>
+
+
+<p />
+If a tool doesn't have a man page, or you'd like some different information, the following usually works: 
+
+<p />
+<tt>$&nbsp;command_name&nbsp;-h&nbsp;(or&nbsp;--help)</tt> 
+
+<p />
+This will often print out a useful page of information. If there is too much output to read, try using one of the pagers (e.g. <tt>more</tt> or <tt>less</tt>) described below. 
+
+<p />
+If you still need more help, search online. Or, email your instructor, TA, or friendly neighborhood Unix guru. 
+
+<p />
+<p />
+<span class="anchor" id="sudo"></span> 
+
+<p />
+
+
+<h3>sudo: superuser do</h3>
+
+
+<p />
+<a class="http" href="http://en.wikipedia.org/wiki/Sudo">sudo</a> is a Unix command meaning "superuser do" and gives unprivileged users access to privileged commands. If you try to do something and it says <tt>Permission denied</tt>, try again -- this time, put <tt>sudo</tt> in front of the command. 
+
+<div class="infobox">
+<p />
+<tt>sudo</tt> is essentially a setuid-root program that interprets its own expressive ACL to determine which actions should be allowed. If you don't know what that means now, don't worry -- you will later. 
+</div>
+
+<p />
+The most simple use of <tt>sudo</tt> is to give a user (such as the primary user of a Linux system) full access to root abilities. In order to exercise those abilities, the user executes the command through sudo like this: 
+
+<p />
+
+<pre>
+$ sudo shutdown -r now
+Password: [user's password]
+
+This system is going down for a reboot NOW!
+Connection closed by foreign host.
+</pre>
+
+<p />
+This command (to reboot a Linux server immediately) typically requires root access. Without <tt>sudo</tt>, a user would have to become root using the command <tt>su</tt> (switch user): 
+
+<p />
+
+<pre>$ su -
+Password: [root's password]
+[ROOT $] shutdown -r now
+This machine is going down for a reboot NOW!!!
+</pre>
+
+<p />
+But this requires that the unprivileged user knows root's password, which undermines any concept of real privilege or security. Instead, <tt>sudo</tt> requires the user to enter <em>their own password</em>, which serves to prove that their terminal has not been taken over. The <tt>sudo</tt> ACL is then interpreted to ensure that the user has the permission to execute the command entered, at which point it is executed as root. 
+
+<p />
+Typically, the user enters their password the first time they use <tt>sudo</tt> in a session (it actually "times out" in around 15 minutes). Sometimes, systems are set up (like SPHERE's experimental nodes) where <tt>sudo</tt> does not require a password. This can be dangerous; one of the nice features of the password prompt is to make sure that you really mean to execute something as root. 
+
+<p />
+<tt>sudo</tt> can lock down individual commands; this is necessary for real security. For example, a user can be given access to run a particular program as root but no root access to any other actions. Due to the expressiveness of the ACL, it is very easy to inadvertently create an insecure ACL allowing a user unintended access through <tt>sudo</tt>. For example, on SPHERE you can enter <tt>sudo&nbsp;su&nbsp;-</tt> to assume <tt>root</tt> without knowing <tt>root</tt>'s password. You can also enter <tt>sudo&nbsp;passwd&nbsp;root</tt> and change <tt>root</tt>'s password. In the case of SPHERE this is by design -- but obviously in other environments it would represent the worst kind of security breach, because once an attacker has acquired root access there is <em>no way to know the system is secure</em> without wiping and reinstalling or validating every single piece of software on the system. (Why?) Therefore it is important that administrators make sure their <tt>sudo</tt> ACLs are well written and secure. 
+
+<div class="warning">
+<p />
+<img src="alert.png" />
+If an attacker has root access, he or she can change literally anything that is changeable on the system, including modifying the kernel, executables, compilers, system tools, and so on. Common modifications include changing the tools that would normally be used to detect modifications! Because of this, it is extremely difficult to verify that a system has been "secured" following an attack. As a result, the "best practice" is to wipe the system to the "bare metal," including reformatting the hard drive and reinstalling the operating system and data from trusted media.
+</div>
+
+<p />
+There isn't space here to go into the full <tt>sudo</tt> ACL (which is located at <tt>/etc/sudoers</tt>) but there is a <tt>sudo</tt> manpage, many online tutorials, and even a <tt>sudoers</tt> manpage for the ACL file, featuring a complete syntax description in <a class="http" href="http://en.wikipedia.org/wiki/Ebnf">EBNF</a>. Enjoy that. 
+
+<p />
+<span class="anchor" id="syslog"></span> 
+
+<p />
+
+<h3>Read and search in files</h3>
+<h4>cat, less, tail, head, and grep</h4>
+
+<p />
+<h4>cat</h4>
+
+
+<p />
+<tt>cat</tt> (short for concatenate) opens a file and prints it to standard out (which is typically your console). <tt>cat</tt> doesn't have any "brakes" -- it will flood your terminal -- but it is indispensible for sending data into other Unix applications. The command: 
+
+<p />
+
+<pre>$ sudo cat /var/log/messages</pre>
+
+<p />
+... will print the file /var/log/messages to screen as fast as your connection will allow. <tt>cat</tt> terminates at the end of the file. You can also quit <tt>cat</tt> by pressing <tt>^C</tt> (Control-C). 
+
+<p />Most of the time, however, you want to control how much of a file you see. The following tools help you do just that.
+
+<h4>less</h4>
+
+
+<p />
+<tt>less</tt> is the better replacement for the Unix file pager <tt>more</tt>. To use <tt>less</tt>, enter: 
+
+<p />
+
+<pre>$ less /var/log/messages</pre>
+
+<p />... or
+
+<pre>$ cat /var/log/messages | less</pre>
+
+<p />
+And you will be greeted by the top of the system log. To move up and down in the file, you can use the arrow keys, or page up, page down, home, and end. You can also search within the loaded file using the / (search forward) and ? (search backward) command, like this: 
+
+<p />
+
+<pre>
+...
+xxx.105.166.xxx - - [02/Sep/2007:07:15:32 -0700] "GET /foo/SomePage HTTP/1.1" 200 15289
+xxx.105.166.xxx - - [02/Sep/2007:07:17:23 -0700] "GET /foo/ HTTP/1.1" 200 16557
+/SomePage&lt;enter&gt;
+</pre>
+
+<p />
+Note the bottom line, <tt>/SomePage&lt;enter&gt;</tt>. When you press "/" (the search forward key), less will print it at the bottom, and wait for you to enter a search string. When you're finished, press enter. This will jump to the first and highlight all occurances of the string "SomePage". To see the next result, press "/" again and hit enter. In this way, you can cycle through all occurrences of a string in a text file. The command "?" works exactly like "/" but searches backwards. Both ? and / accept <a class="http" href="http://en.wikipedia.org/wiki/Regular_expression">regular expressions</a> (also known as regexes) in addition to normal strings -- if you know regexes you can create vastly more expressive search patterns.  
+
+<p />
+Hit q to quit <tt>less</tt>. 
+
+<p />
+
+
+<h4>tail and head</h4>
+
+
+<p />
+<tt>tail</tt> and <tt>head</tt> respectively print out the last 10 and first 10 lines of their input file. Typically, <tt>tail</tt> is used to check the end of a file, but it is also very commonly used to "watch" a log file. Using the command: 
+
+<p />
+
+<pre>$ sudo tail -f /var/log/messages</pre>
+<p />
+... you can watch the messages file grow. ^C quits. 
+
+<p />
+
+
+<h4>grep</h4>
+
+<p />
+<tt>grep</tt> is what makes <tt>cat</tt> useful in this context. <tt>grep</tt> is a filter that uses patterns (including regexes) to filter lines of input. For example, given the snippet of the messages file from before, if a user "pipes" the output of <tt>cat</tt> into <tt>grep</tt> and filters for "xxx.55.121.xxx" like this: 
+
+<p />
+
+<pre>$ cat /var/log/messages | grep xxx.55.121.xxx</pre>
+<p />
+... she will see only lines matching xxx.55.121.xxx: 
+
+<p />
+
+<pre>
+...
+Sep  5 21:49:08 localhost postfix/smtpd[19090]: connect from unknown[xxx.55.121.xxx]
+Sep  5 21:49:10 localhost postfix/smtpd[19090]: lost connection after CONNECT from unknown[xxx.55.121.xxx]
+Sep  5 21:49:10 localhost postfix/smtpd[19090]: disconnect from unknown[xxx.55.121.xxx]
+...
+</pre>
+
+<p />
+If there is still too much output, just pipe the output from <tt>grep</tt> into <tt>less</tt>, like this: 
+
+<p />
+
+<pre>$ cat /var/log/messages | grep kernel | less</pre>
+<p />
+... and now you can use the features of <tt>less</tt> to examine your result. 
+
+<p />
+As an alternative, you can use <i>command line redirection</i> to send the output to a file like so: 
+
+<p />
+
+<pre>$ cat /var/log/messages | grep kernel &gt; kernel_grep.txt</pre>
+<p />
+
+... You can then use <tt>less</tt> on the file <tt>kernel_grep.txt</tt> you just created. 
+
+<p />
+<tt>grep</tt> has many advanced features, such as negation (<tt>grep&nbsp;-v&nbsp;somestring</tt>). For more information see <tt>grep</tt>'s manpage. 
+
+<span class="anchor" id="redir" />
+<div class="infobox">
+<h5>Redirecting Output to a File</h5>
+<p />
+<img src="idea.png" /> You can make a command put its output into a file in any location like this: 
+
+<p />
+<pre>$ somecommand &gt; top_secret/output.txt</pre>
+<p />You could also do this with copy and paste via <tt>screen</tt>, but output redirection is nicer for most purposes. 
+</div>
+
+
+<p />
+<span class="anchor" id="find"></span> 
+
+<p />
+
+
+<h3>find, xargs, and locate: find files</h3>
+
+
+<p />
+Users of more "user friendly" operating systems such as Windows and OS X are spoiled when it comes to finding local files, because while the graphical tools like Windows find, Apple's Spotlight Search, and Google Desktop are fast and easy to use, they are generally not nearly as flexible or expressive as the standard Unix utilities for finding files, <tt>find</tt>, <tt>xargs</tt>, and/or <tt>locate</tt>. 
+
+<p />
+
+<h4>find -- find files on the system</h4>
+
+
+<p />
+<tt>find</tt> can be used to search for files of various names and sizes, various modification times, access permissions, and much, much more. However, the syntax for <tt>find</tt> is a black art into which most of its users are barely initiated. We'll discuss the basics here so you can use it. If you want to know more, read the manpage or look online. 
+
+<p />
+The basic command format is "<tt>find&nbsp;[path&nbsp;[expression]</tt>", where 'path' is the directory to start searching in and <tt>expression</tt> is some compound expression made up of <em>options</em>, <em>tests</em>, <em>actions</em>, and <em>operators</em>. The expression modifies the search behavior: <em>options</em> specify things like how many levels deep to search, whether to follow symlinks, whether to traverse filesystem boundaries, etc. <em>Tests</em> specify conditions like matches on the filename, modification date, size, etc. <em>Actions</em> can be defined to delete matching files, print the files, or execute arbitrary commands. (The default action is to print the name of any match.) <em>Operators</em> are logical operators for combining multiple expressions. Expressions limit results. Accordingly, no expression at all will "match" everything and the default action will print the relative paths of all files that <tt>find</tt> encouters.  
+
+<p />
+You usually don't want to list every file in a subtree. In this case you may want to limit the search with an expression. An expression begins with the first of several expression options that begin with a hyphen (such as <tt>-name</tt> or <tt>-mtime</tt>) or other special characters. The expression can also specify actions to take on any matching files (such as to delete them). Expressions can become very complicated. And like any complicated machine, the more complicated the expression, the more likely it is that <tt>find</tt> will not do exactly what you want. If you need to create expressions beyond the complexity addressed here, please see <tt>man find</tt> or a tutorial online and try examples on your own. 
+
+<p />
+Here are a few simple examples to get you started: 
+
+<p />
+"Find all files ending with .txt, starting in this directory. Use <tt>head</tt> to show me only the first 5 results." 
+
+<p />
+
+<pre>$ find . -name "*.txt" | head -n 5</pre>
+
+<p />
+"Find all files ending with "~" or ".swp" (common tempfile designations), starting in the subdirectory <tt>public_html</tt>." To do this, we'll use the OR operator <tt>-o</tt>.
+
+<p />
+
+<pre>$ find public_html -name "*.swp" -o -name "*~"</pre>
+
+<p />
+"Find all files on the root filesystem not modified in 6 years (2190 days). Start in the root directory (/), and do not descend into other filesystems (such as NFS directories). Use head to only show the first 5 results." 
+
+<p />
+
+<pre>$ find / -mount -mtime 2190 | head -n 5</pre>
+
+<p />
+Finally, here's an example from <tt>man&nbsp;find</tt>: 
+
+<p />
+
+<pre>$ find /    \( -perm -4000 -fprintf /root/suid.txt ’%#m %u %p\n’ \) , \
+             \( -size +100M -fprintf /root/big.txt ’%-10s %p\n’ \)
+</pre>
+
+<p />
+This translates to: "Traverse the filesystem just once, listing setuid files and directories into /root/suid.txt  and  large  files  into /root/big.txt." (<tt>man&nbsp;find</tt>) 
+
+<div class="infobox">
+<p />
+<img src="idea.png" />
+The backslashes ("\") in the above example are called "escapes." Backslash escaping tells the shell either to treat the escaped character literally -- not as a a special character -- or vice versa (that a regular character has a special meaning). Above, the parentheses are escaped because they are input for <tt>find</tt>. If they were not escaped, the shell would interpret them in its own way, because parentheses are special for the shell. Similarly, a line break created by pressing enter signifies the end of a command -- unless it is escaped. Here, the line break (visible as the backslash at the end of a line) is escaped to tell the shell that the command is continuing on the next line. Finally, an escaped "n" character, (<tt>\n</tt>) represents a line break in printf-style format strings.
+
+
+<p />
+Be careful with advanced uses of <tt>find</tt>, especially if you are deleting files. As you might imagine, unexpected things often happen when shell escapes, quoting and expansion are involved. 
+
+</div>
+
+<p />
+Finally, because find performs a depth-first search over potentially the entire filesystem tree, it can take a long time to run. You may have better luck with <tt>locate</tt> depending on what you're trying to do. (See below.) 
+
+<p />
+
+
+<h4>xargs -- build command lines from standard input</h4>
+
+
+<p />
+In the Unix environment, the output of one program can be easily redirected (or "piped") into the input of another program. <tt>xargs</tt> allows you to use the output of one program as <em>arguments</em> to another process. This is very useful in conjunction with tools like <tt>find</tt>, <tt>cat</tt>, and <tt>grep</tt>. As with everything in the LabTools document, this is only a brief introduction to <tt>xargs</tt> -- for more information, please see <tt>man&nbsp;xargs</tt>. 
+
+<p />
+The most common use of <tt>xargs</tt> is to take the output from a command and use it as a parameter in a different command. For example: 
+
+<p />
+"Run <tt>strings</tt> on every file on the system that ends with ".pwd" (case insensitive)  and sort the results ASCIIbetically." 
+
+<p />
+
+<pre>$ find / -iname "*.pwd" | xargs strings $1 | sort</pre>
+
+<p />
+The output of <tt>find</tt> is used by <tt>xargs</tt> to construct the <tt>strings</tt> command. After this, the output of <tt>strings</tt> is put into a different order by <tt>sort</tt>.  
+
+<p />
+Here's another example: 
+
+<p />
+"Delete the first four files ending in ".swp" or "~" that have not been modified in 24 days starting in this directory." 
+
+<p />
+
+<pre>find . -mount -mtime +24 \( -name "*.swp" -o -name "*~" \) | head -n 4 | xargs rm $1</pre>
+
+<p />
+Note the use of <tt>head</tt> to limit the action. Without <tt>head&nbsp;-n&nbsp;4</tt>, <tt>xargs</tt> would have removed every matching file. 
+
+<p />
+
+<h4>locate -- a faster way to search</h4>
+
+
+<p />
+<tt>find</tt> does not keep a database of information to use; every time you run a new invocation of <tt>find</tt>, it traverses the entire directory structure looking for matches. This allows you to search the current state of the system, but also lacks the advantages that pre-indexing and caching can provide. <tt>locate</tt> and its helper command <tt>updatedb</tt> are more like Google Desktop than Unix <tt>find</tt> in this sense. 
+
+<p />
+<strong> Before using <tt>locate</tt>, <tt>updatedb</tt> must be run as root to index the entire disk, recording it in a database.</strong> Then, the <tt>locate</tt> command is used with a few simple options to match filenames. This can be <em>much</em> faster than using <tt>find</tt>, especially if you don't know exactly what you're looking for or where it might be. As always, see <tt>man&nbsp;locate</tt> for more information. To update the locate database, run: 
+
+<p />
+
+<pre>$ sudo updatedb</pre>
+
+<p />
+<tt>sudo</tt> is used to make sure that you have permission to read the entire disk. 
+
+<p />
+The following examples assume that updatedb has been run as root recently: 
+
+<p />
+"Find all files ending in '~' or '.swp'." 
+
+<p />
+
+<pre>$ sudo locate *~ *.swp</pre>
+
+<p />
+"Find all files ending in '~' or '.swp' and delete them." 
+
+<p />
+
+<pre>$ sudo locate *~ *.swp | xargs rm $1</pre>
+
+<p />
+<tt>locate</tt> will complete the search for the first term and then the second term. So an example like this: 
+
+<p />
+"Find all files ending in '~' or '.swp' and delete the first 10 results." 
+
+<p />
+
+<pre>$ sudo locate *~ *.swp | head | xargs rm $1</pre>
+
+<p />
+Will only delete ".swp" files if there were <em>less</em> than 10 "~" files (since the "~" files are returned first). 
+
+<p />
+<tt>sudo</tt> is used in the locate commands to make sure that you are able to access all of the <tt>locate</tt> database. 
+
+<p />
+<p />
+<span class="anchor" id="tar"></span> 
+
+<p />
+
+<h3>tar</h3>
+
+<p />
+
+<h4>tar -- Tape Archiver</h4>
+
+
+
+<p />
+tar is an ancient program, reflected in the meaning of its name -- tape archiver -- from when backups were primarily performed on magnetic tape. 
+
+<p />
+The tar manpage includes a lot of information, but I'll just give some example usage: 
+
+<p />
+To create a <tt>tar</tt> archive (also called a "tar file" or "tarball") of an entire directory, execute: 
+
+<p />
+
+<pre>$ tar cvzf somedir.tar.gz somedir</pre>
+
+<p />
+In the above example, there are a number of switches: 
+
+<ul><li>c -- create archive 
+</li><li>v -- be verbose 
+</li><li>z -- compress (adds gzip (gz) compression) 
+</li><li>f -- tells tar that you're going to provide the filename next 
+
+</li></ul><p />
+In this case, <tt>somedir.tar.gz</tt> (the first parameter) is the file to be created, and <tt>somedir</tt> (second parameter) is the directory being compressed. 
+
+<p />
+To decompress a tar file, do something like this: 
+
+<p />
+
+<pre>$ tar xvzf somedir.tar.gz</pre>
+
+<p />
+In this example, the x stands for extract; the other switches are the same. 
+
+<p />
+<span class="anchor" id="screen"></span> 
+
+<p />
+
+<h3>screen: terminal multiplexer and manager</h3>
+
+
+<p />
+<a class="http" href="http://en.wikipedia.org/wiki/GNU_Screen">screen</a> is a terminal multiplexer with many features.  Typically, when a user disconnects from a system, all their running processes terminate -- <tt>screen</tt> allows users to keep those programs running in such a way that the user can reconnect to them. Screen also allows users to have multiple shell sessions open in a single terminal application window. 
+
+<p />
+The most immediately obvious benefits of <tt>screen</tt> are: 
+
+<ul><li>disconnecting from a system but leaving your programs running in such a way that you can reconnect to them 
+</li><li>share a screen between two users 
+</li><li>cut and paste 
+</li><li>multiple terminals "inside" one terminal window 
+
+</li></ul><p />
+<tt>screen</tt> functions as a very simple window manager for terminal sessions. As such, all programs are run <em>inside</em> <tt>screen</tt>, which itself runs inside one terminal window (such as PuTTY, Gnome Terminal, or Terminal.app). Control sequences (starting with Control-a) are used to issue commands to <tt>screen</tt>. 
+
+<p />
+For example, to start a large software compilation and detach your terminal, one could enter these commands: 
+
+<ul><li><p />
+screen <em>(this starts the program screen and a terminal inside of it)</em> 
+	<ul>
+	<li>$ make bigsoftwareproject (this will take a while)
+	</li><li><p />Control-a, d <em>(detach this screen)</em>
+	</li></ul></li>
+<li><p />exit <em>(log out of the system)</em>
+</li></ul>
+
+<p />
+Later, the user can log back in to the system and type: 
+
+<ul><li><p />
+screen -r -d <em>(detach and pick up a screen session)</em> 
+</li><li>... Now the user is back where they left off, and the software is compiling in the background. 
+<ul><li><p />
+Control-a c <em>(create a new window)</em> 
+</li><li><p />
+$ less somefile.txt <em>(The user looks at a file inside less)</em> 
+</li><li><p />
+Control-a 0 <em>(The user switches back to screen 0 where "bigsoftwareproject" is still building) </em> 
+</li><li><p />
+... (It's still building...)<em> </em> 
+</li><li><p />
+Control-a 1 (The user switches back to screen 1 where they are reading somefile.txt)<em> </em> 
+</li><li>... etc. 
+
+</li></ul></li></ul><p />
+For example, a user can keep an IRC window, mail client, software build, top system monitor, iptraf monitor, and more running on a system as long as the system stays up. The user can access the <tt>screen</tt> session, interact, and disconnect from the session with the ability to log back in to the system and pick up where he or she left off. 
+
+<p />
+<tt>screen</tt> also allows you to copy and paste in between windows and scroll back. In order to use this functionality, enter <tt>Control-a&nbsp;ESC</tt>, followed by the arrow keys to navigate the cursor. Press ENTER to make the first mark, move the cursor, and press ENTER again to select and copy the text. To paste it at the cursor location, press <tt>Control-a&nbsp;]</tt>. Because screen has a large scrollbuffer, the copy function can be used to scroll back long distances, which is useful for reviewing past information. To leave copy mode without selecting any text, hit ENTER twice. 
+
+<p />
+<span class="anchor" id="toplist"></span> 
+
+<p />
+
+
+<h3>top and ps: process lists</h3>
+
+
+<p />
+Top is an interactive process list and can be used to monitor aspects of the current system state. Top looks like this: 
+
+<p />
+
+<pre>$ top
+top - 21:18:50 up 15 days, 31 min,  6 users,  load average: 0.35, 0.22, 0.17
+Tasks: 134 total,   1 running, 133 sleeping,   0 stopped,   0 zombie
+Cpu(s):  3.3%us,  0.3%sy,  0.0%ni, 96.3%id,  0.0%wa,  0.0%hi,  0.0%si,  0.0%st
+Mem:   1034856k total,   998196k used,    36660k free,   228012k buffers
+Swap:  1965584k total,    65512k used,  1900072k free,   388076k cached
+  PID USER      PR  NI  VIRT  RES  SHR S %CPU %MEM    TIME+  COMMAND
+21415 root      15   0  185m 106m  14m S  3.3 10.6   9:48.08 Xorg
+18458 pedro     25  10  2320 1184  880 R  0.3  0.1   0:00.02 top
+22544 pedro     15   0  109m  31m  11m S  0.3  3.1   0:07.90 gnome-terminal
+    1 root      15   0  2908  508  456 S  0.0  0.0   0:01.38 init
+    2 root      34  19     0    0    0 S  0.0  0.0   0:06.73 ksoftirqd/0
+    3 root      RT   0     0    0    0 S  0.0  0.0   0:00.00 watchdog/0
+...
+</pre>
+
+<p />
+Top updates roughly every two seconds. The rows can be sorted in multiple ways, but probably the most useful commands to know are 'P' to sort by processor use and 'M' to sort by memory use. These commands are case sensitive. Hit 'q' to quit top. 
+
+<p />
+If you need more comprehensive information, try using the <tt>ps</tt> command. It's not pretty like top, but it's thorough. Try running something like this: 
+
+<p />
+
+<pre>$ ps aux</pre>
+
+<p />
+or... 
+
+<p />
+
+<pre>$ sudo ps aux</pre>
+
+<div class="infobox">
+<p />
+If there's too much information there for you, try using one of the previous shell tools (e.g., <tt>sudo ps aux | less</tt>) to manage it or output it to a file. 
+</div>
+
+<p />
+<span class="anchor" id="elinks"></span> 
+
+<p />
+
+
+<h3>elinks: terminal based web-client</h3>
+
+
+<p />
+<a class="http" href="http://en.wikipedia.org/wiki/ELinks">ELinks</a> is a text-only web browser that can handle tables, frames, and ssl. To use Elinks, enter a command like one of these: 
+
+<p />
+
+<pre>$ elinks http://example.com/
+$ elinks http://10.1.1.2/foo.html
+$ elinks index.html
+</pre>
+
+<p />
+ELinks is very feature-rich, with many hotkeys and a GUI-style dropdown menu you can access with the escape key. Navigate the menus and webpages with the arrow keys, pressing right arrow or enter to open a link, or left arrow to go backwards. 
+
+<p />
+<span class="anchor" id="hex"></span> 
+
+<p />
+
+<h3>editors -- edit hexadecimal and ASCII: edit text and binary files</h3>
+
+<p />
+There are many traditional editors, ranging from the very powerful to the simple and even the incomprehensible. You may already have your <a class="http" href="http://en.wikipedia.org/wiki/Editor_war">favorite editor</a>, but if not, feel free to choose from this list: 
+
+<p />
+
+<h4>nano - the easiest editor for beginners </h4>
+
+
+<p />
+<tt>nano</tt> : <a class="http" href="http://www.nano-editor.org/">Homepage</a> : <a class="http" href="http://en.wikipedia.org/wiki/Nano_(text_editor)">Wikipedia</a> : <a class="http" href="http://www.nano-editor.org/docs.php">Documentation</a> 
+
+<p />
+<tt>nano</tt> was originally written to be a Free Software version of <tt>pico</tt>, the editor included in the once-popular email client, <a class="http" href="http://en.wikipedia.org/wiki/Pine_(e-mail_client)">Pine</a>. <tt>nano</tt> is very similar to familiar text editors such as MS-DOS's <tt>edit</tt> and <tt>notepad</tt>. As such, it is very easy to use, but lacks most of the advanced features in Emacs and vi that make those editors popular with programmers. 
+
+<strong>How to install nano</strong>
+<p> If not already installed, you can install <tt>nano</tt> by typing <tt>sudo apt update; sudo apt install nano -y</tt>.
+
+<p />
+<strong>Quitting nano</strong> 
+
+<p />Hold <tt>CTRL</tt> key and press  "x". You can see all commands at the bottom of the screen. "^" means "CTRL". 
+
+<p />
+
+<h4>vim</h4>
+
+
+<p />
+<span class="anchor" id="vim"></span> <tt>vim</tt> : <a class="http" href="http://www.vim.org/">Homepage</a> : <a class="http" href="http://en.wikipedia.org/wiki/Vim_(text_editor)">Wikipedia</a> : <a class="http" href="http://vimdoc.sourceforge.net/">Vimdoc</a> 
+
+<p />
+Vim is "vi-improved" and is based on <tt>vi</tt>, written by Bill Joy in 1976. <tt>vi</tt> is a modal editor (which means you are typically either in insert or command mode but never both simultaneously). To enter insert mode for entering text, press <tt>i</tt> or the <tt>Insert</tt> key on your computer. (<tt>vim</tt> will enter Replace mode (i.e. overwrite) if you press <tt>Insert</tt> twice). To leave insert mode and enter command mode, press <tt>Escape</tt>.
+
+<p /> <tt>vi</tt> is part of the <a class="http" href="http://en.wikipedia.org/wiki/POSIX">POSIX</a> standard for Unix, so some version of <tt>vi</tt> (e.g., <tt>vi</tt>, <tt>nvi</tt>, <tt>elvis</tt>, <tt>vim</tt> ...) should be available on all Unix-like systems everywhere. Vim has greatly extended features such as split screens, syntax highlighting, and much more. <tt>vi</tt> is often lauded for doing one thing and doing it well -- on the other hand, it is sometimes criticized for this limitation, and many users dislike modal editing. New users sometimes find <tt>vi</tt> confusing. 
+
+<p />
+<strong>How to install vim</strong>
+<p> If not already installed, you can install <tt>vim</tt> by typing <tt>sudo apt update; sudo apt install vim -y</tt>.
+  
+<strong>How to quit vim</strong> 
+
+<p />
+To quit vim, hit <tt>escape</tt> (to enter command mode), then enter 
+
+<p />
+<tt>:wq</tt> 
+
+<p />
+This stands for write and quit -- just <tt>:w</tt> writes without quitting (a.k.a "saving"), <tt>:q</tt> quits a blank document, and <tt>:q!</tt> quits a document with unsaved changes. Finally, <tt>:w!</tt> writes a "write protected" file that you have the permission to change. 
+
+<p />
+
+
+<h4>emacs</h4>
+
+
+<p />
+<tt>emacs</tt> : <a class="http" href="http://www.gnu.org/software/emacs/emacs.html">Homepage</a> : <a class="http" href="http://en.wikipedia.org/wiki/Emacs">Wikipedia</a>: <a class="http" href="http://xahlee.org/emacs/emacs.html">Tutorial</a> 
+
+<p />
+Emacs is the Pepsi to <tt>vi</tt>'s Coke. Originally written by <a class="http" href="http://en.wikipedia.org/wiki/Richard_Stallman">Richard M. Stallman</a> at MIT, Emacs is first a text editor, but it is much more. Emacs is incredibly extensible; it features a built in version of the Lisp language, and many external libraries and applications exist to add functionality. With the standard and extended features, Emacs can be and do so many things that some people think of Emacs almost as its own operating system. Advanced functionality includes: gdb debugger interface, diff, gnus email client, web browser, file browser, tetris, and pong! Emacs is appreciated for its power and unparalleled extensibility, but is often criticized for being bloated or for trying to do "too much". New users sometimes find Emacs confusing. 
+
+<p />
+
+<strong>How to install emacs</strong>
+<p> If not already installed, you can install <tt>emacs</tt> by typing <tt>sudo apt update; sudo apt install emacs -y</tt>.
+
+ <p>
+<strong>How to quit emacs</strong>
+<p> You can quit emacs by holding <tt>CTRL</tt> key and pressing <tt>X</tt> and then <tt>C</tt>. If you have unsaved changes, you will be prompted to save them. Type "y" to save or "n" to quit without saving.
+
+
+
+
+<h4>joe</h4>
+
+
+<p />
+<tt>joe</tt> : <a class="http" href="http://joe-editor.sourceforge.net/">Homepage</a> : <a class="http" href="http://en.wikipedia.org/wiki/Joe's_Own_Editor">Wikipedia</a>  : <a class="http" href="http://heather.cs.ucdavis.edu/~matloff/Joe/NotesJoe.NM.html">Tips</a> 
+
+<p />
+Joe's own editor is designed to be easy to use, and is very common in Linux distributions. It is similar to <tt>nano</tt> in its simplified "<tt>notepad</tt>-like" interface, but has somewhat more features than <tt>nano</tt>. 
+
+<p />
+
+<strong>How to install joe</strong>
+<p> If not already installed, you can install <tt>joe</tt> by typing <tt>sudo apt update; sudo apt install joe -y</tt>.
+
+<p />
+<strong>Quitting joe</strong> 
+
+<p />Hold <tt>CTRL</tt> key and press  "KX".
+
+<p />
+
+
+<h4>ed</h4>
+
+
+<p />
+<tt>ed</tt> : <a class="http" href="http://www.gnu.org/software/ed/ed.html">Homepage</a> : <a class="http" href="http://en.wikipedia.org/wiki/Ed_(text_editor)">Wikipedia</a> : <a class="http" href="http://www.gnu.org/fun/jokes/ed.msg.html">Notes</a> 
+
+<p />
+<tt>ed</tt> is the original standard Unix text editor, written by <a class="http" href="http://en.wikipedia.org/wiki/Ken_Thompson">Ken Thompson</a>, and it is in some ways a primitive ancestor of <tt>ex</tt>, <tt>vi</tt>, <tt>awk</tt>, <tt>sed</tt>, and Perl. <tt>ed</tt> is terse <em>in the extreme</em>, a design feature that was logical in the days of 110 baud [slow!] terminals and remote connections, but which today seems alien, unfriendly, and unbelievably obtuse. Nonetheless, <tt>ed</tt> is even more universal than <tt>vi</tt> and serves as an interesting paleontological counterpoint in any discussion of text editors. 
+
+<strong>How to install ed</strong>
+<p> If not already installed, you can install <tt>ed</tt> by typing <tt>sudo apt update; sudo apt install ed -y</tt>.
+
+<p />
+<strong>Quitting ed</strong> 
+
+<p />Press "q" to quit.
+
+<p />
+See each editor's <tt>man</tt> page for more information. 
+
+<p />
+
+
+
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+
+This simple lab needs no introduction. Just follow the instructions and submit the resulting tarball to your instructor.
+
+<span class="anchor" id="assignment"></span> 
+<h2>Assignment Instructions</h2>
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>intro</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your <tt>intro</tt> node. <p /></ol></ol><p />
+
+
+</div>
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>
+
+<div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+<span class="anchor" id="filehunt"></span>
+<h4>1. Treasure Hunt</h4>
+
+<ol type="1"><li><p />On the <tt>intro</tt> node there are 5 JPEG files whose names contain the word "intro" <strong>in some form</strong>. Find all five files. 
+        <ul>
+        <li><p />Recall that UNIX is case sensitive.</li>
+        </ul>
+</li><li>Make a directory in your home directory called <tt>top_secret</tt>. 
+</li><li>Move the 5 files into <tt>top_secret</tt> 
+</li><li>Use a text editor to create a plain text file in <tt>top_secret</tt> called <tt>answers.txt</tt> that includes the original locations of the 5 files and a brief but unambiguous description (e.g., the title) of the image. 
+  </li>
+</ol>
+<div class="ai">
+<b>AI-option</b> If you have used AI to give you a full command to find images, please submit additional <i>hand-written</i> answers. You can write them on a piece of paper, take a picture of that paper and then add the picture to your submission stored in a separate "AI" folder.
+	    <ol type="a">
+	      <li>Which AI you have used? How many tokens did you spend? How much time did you spend?
+	      <li>How many times did you have to prompt the AI to get the final answer?
+	      <li>Submit your final prompt
+	      <li>Submit the command you ran with all the command-line parameters and explain what each parameter choice means
+	    </ol>
+	    </div>
+</p>
+
+<div class="infobox">
+<p />
+<img src="idea.png">
+To describe the image, you need to view the image. This involves using Secure Copy (<tt>scp</tt>) to transfer the files to your local machine. See <a href="https://docs.sphere-testbed.net/experimentation/xdc/#reaching-an-xdc-via-ssh">introduction to SSH</a> for more information.
+</div>
+
+<span class="anchor" id="infohunt"></span>
+<h4>2. Information Hunt</h4>
+
+
+<p />It's important to be able to go online and find the answers to technical questions. In order to get you figuring out how to find answers, we'd like you to answer the following questions. Put the answers to these questions in your <tt>answers.txt</tt> file in the <tt>top_secret</tt> directory.
+
+<ol type="1"><li>1 sentence: What goes in the <tt>/var</tt> directory on a UNIX computer? 
+</li><li>1 sentence: What is the <tt>/dev</tt> directory for on a UNIX computer? 
+</li><li>On your experimental node, find out how large the disks are and how much space is free. Put this information in a separate file called <tt>top_secret/diskfree.txt</tt>. (See the infobox on <a href="#redir">command redirection</a> for an easy way to do this.)
+</li><li>On your experimental node, find out the "vendor id" of the experimental node's CPU model. 
+<ul><li>Hint: there is a dynamic file on the system that includes this information. 
+</li></ul></li></ol>
+
+
+<p />
+
+<span class="anchor" id="wrapup"></span>
+<h4>3. Wrap it up!</h4>
+
+<p />
+Collect your answers and the images you found and submit them to your instructor.
+
+<ol type="1"><li>Make sure your personal information (and any other information requested by your instructor) is included in <tt>answers.txt</tt>: 
+<ul><li>Your name 
+</li><li>Your email address 
+</li><li>Your SPHERE username 
+</li></ul></li><li><p />Make a <a href="#tar">gzipped tarball</a> called <tt>username-intro.tar.gz</tt> containing the <tt>top_secret</tt> directory
+<ul><li>This should include all 5 images, <tt>diskfree.txt</tt> and your <tt>answers.txt</tt> 
+</li><li><p />Example: <tt>tar&nbsp;cvzf&nbsp;1234567890-intro.tar.gz&nbsp;top_secret</tt> 
+
+</div>
+<span class="anchor" id="glitches"></span>
+
+<div class="level3">
+<h3>What can go wrong</h3>
+
+<p />There's not much to go wrong here. However, when you're looking for the image files, remember that Unix is case-sensitive -- "I" and "i" are not the same. Also, remember that sometimes, different extensions can refer to the same type of file.
+
+</div>
+
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+<p />Submit your tarball to your instructor.
+
+</div>
+</body></html>
+

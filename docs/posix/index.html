@@ -1,0 +1,904 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>Prevention: POSIX Permissions</title>
+
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
+href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
+href="../../css//screen.css">
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>POSIX Permissions</h1>
+<div class="author">Created by: Peter A. H. Peterson and Dr. Peter Reiher, UCLA {pahp, reiher}@cs.ucla.edu, with Dr. Tanya Crenshaw, UP {crenshaw@up.edu}<br>
+</div>
+
+<!--
+<div class="due-date">Due: Monday, April 18th, 2011 11:59PM via CourseWeb</div>
+-->
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+<li><a href="#reading">Required Reading</a>
+<ol>
+	<li><a href="#posix">POSIX Permissions</a>
+	<li><a href="#criticisms">Criticisms</a>
+	<li><a href="#sudo">sudo and Alternatives</a>
+	<li><a href="#permtools">Software Tools</a>
+	<ol>
+			<li><a href="#adduser">adduser, chfn, passwd</a>
+			<li><a href="#addgroup">addgroup</a>
+			<li><a href="#usermod">usermod</a>
+			<li><a href="#chown">chown, chgrp</a>
+			<li><a href="#chmod">chmod</a>
+	</ol>
+</ol>
+<li><a href="#intro">Introduction</a>
+<li><a href="#assignment">Assignment Instructions</a>
+<ol>
+	<li><a href="#setup">Setup</a>
+	<ol>
+		<li><a href="#saving">Saving your work</a></li>
+		<li><a href="#restoring">Restoring your work</a></li>
+	</ol>
+	<li><a href="#tasks">Tasks</a>
+	<ol>
+		<li><a href="#homedirsec">Home Directory Security</a>
+		<li><a href="#ballotbox">The Ballot Box</a>
+		<li><a href="#tpsreports">The TPS Reports Directory</a>
+		<li><a href="#sudoprobs">sudo Problems</a>
+	</ol>
+
+	<li><a href="#tips">Tips and Tricks</a>
+	<ol>
+		<li><a href="#ambiguity">Resolving ambiguities</a></li>
+	</ol>
+</ol>
+<!-- <li><a href="#extra">Extra Credit (optional section)</a> -->
+
+<li><a href="#submission">Submission Instructions</a>
+
+</ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+
+<p />The purpose of this exercise is to introduce you to filesystem and network access control schemes and the "principle of least privilege" through the use of POSIX filesystem permissions.
+
+<p />After this exercise, you will: 
+
+<ol type="1"><li>understand the POSIX permissions structure including SUID and SGID bits 
+</li><li>understand the essence of the sudo utility and how to configure and use it securely. 
+</li><li>be able to apply that knowledge to configure permissions in multiple scenarios, such as: 
+<ol type="1"><li>shared system directories 
+</li><li>user home directories and private directories 
+</li><li>privileged system directories 
+</li><li>unprivileged temporary directories 
+</li><li>editing important configuration files 
+</li><li>restarting system processes 
+</li><li>potential privilege escalation problems 
+</li></ol></li></ol><p /><span class="anchor" id="posix"></span><span class="anchor" id="unix"></span> 
+
+<span class="anchor" id="reading"></span> 
+<h2>Required Reading</h2>
+<h3>POSIX Permissions</h3>
+
+<span class="anchor" id="posix"></span>
+<p />The Portable Operating System Interface, or POSIX, is IEEE standards family <strong>IEEE 1003.1</strong> and represents an attempt to formalize the API for variants of the Unix operating system. POSIX specifies standards for the kernel APIs (including many internal functions like permissions, threads, networking, and interprocess communication), commands, required utilities and user-level APIs (including many utilities and scripting tools like awk, echo, ed, sh, vi, basic I/O, and more), and a conformance test that can be run on many platforms. POSIX is very widely disseminated and has been in use for almost 20 years, but is a closed standard (i.e. proprietary). As a result, it is expensive to be certified; this has resulted in many free operating systems such as FreeBSD and Linux being substantially compliant but not officially able to use the moniker "POSIX Compliant". An alternative to POSIX is the <a class="http" href="http://en.wikipedia.org/wiki/Single_UNIX_Specification">Single UNIX Specification</a>, developed by the Austin Group. Unfortunately, it is also proprietary and expensive. 
+
+<p />The expense has not been prohibitive for motivated commercial vendors however, and POSIX has been extremely influential in coalescing and standardizing those elements that are characteristically UNIX-like. Furthermore, POSIX is a standard that influences software design and operating system implementations in seemingly unlikely places -- for example, Windows NT and its derivatives (2000, XP, and beyond) can be "POSIX compliant" with the addition of software packages and the enabling of certain features. This broad influence -- existing before the public explosion of the Internet -- has helped to make software and systems similar in fundamental ways. This, in turn, simplifies many portability and interoperability problems. 
+
+<p />One of the enduring legacies of Bell Labs UNIX and the POSIX standard are traditional Unix file system permissions, which are a simple system of permissions stored in the file system and and kernel and evaluated to mediate access to system resources. Additionally, since devices are files in Unix, file system permissions also mediate control over many aspects of the operating system. 
+
+<p />In most Unix and Unix-like operating systems, the permission system is extremely simple. Each file has <tt>read</tt>, <tt>write</tt>, and <tt>execute</tt> permissions set for each of three groups of users called "access classes". The three classes are  <tt>user</tt> (owner), <tt>group</tt>, and <tt>other</tt>; each access class represents one or more users in the following way: 
+
+<ul><li><p />Users each have unique user identifiers (userids or UIDs, listed in <tt>/etc/passwd</tt>) that only they control. 
+</li><li><p />Groups are arbitrary collections of users. Each group has its own group identifier (groupid or GID, defined in <tt>/etc/group</tt>). Often, every user on the system has a personal group used for sharing data with a limited set of other users.
+<ul><li><p />Example: the <tt>group</tt> class <tt>cdrom</tt> usually contains a list of all users granted permission to access the system's CD-rom drive. 
+</li><li><p />Example: the user <tt>sonny</tt> has a group <tt>sonny</tt> by default; the user <tt>cher</tt> can be added as a member of group <tt>sonny</tt> so that they can share resources between themselves but no one else. 
+</li></ul></li><li><p />Finally, the membership of the <tt>other</tt> class for each file is dependent on the <tt>user</tt> and members of the <tt>group</tt> class -- <strong>the</strong> <tt>other</tt> <strong>class does not represent "all users!"</strong> Specifically, the <tt>other</tt> class represents "everyone that is <em>not</em> the <tt>user</tt> (owner) of the file and <em>or</em> a member of the file's <tt>group</tt> class."  This fact allows us to express more meaningful permissions by strictly dividing all system users into three non-overlapping sets. 
+<ul><li><p />A more precise way of stating this is to say that <tt>other</tt> represents the the list of all users on the system, minus the union of the <tt>user</tt> and <tt>group</tt> classes. 
+</li><li><p />Example: There are three users on a system: <tt>sonny</tt>, <tt>cher</tt>, and <tt>donovan</tt>. <tt>sonny</tt> owns a file whose group access class is set to the group <tt>sonny</tt>, which contains the user <tt>cher</tt>. The <tt>other</tt> class consists only of <tt>donovan</tt>, because he is not the owner nor in the group <tt>sonny</tt>. 
+</li></ul></li></ul><p />Each access class is encoded by 3 bits. Each bit present grants an additional permission from the set <tt>read</tt>, <tt>write</tt>, and <tt>execute</tt>. When you list files in long form (with the option <tt>-l</tt>), you will see the permissions  written out in the leftmost column as a bitstring with the letters <tt>r</tt>, <tt>w</tt>, and <tt>x</tt> in the order <tt>user</tt>, <tt>group</tt>, and <tt>other</tt>: 
+
+<p />Here's what it looks like "in the wild": 
+
+<p />
+<pre>
+$ ls -alh
+-rw-r--r--   1 pahp console  18K May 16  2006 gpl.txt
+drwx------   5 pahp console  512 May 21  2006 john-1.7.2/
+lrwxrwxrwx   1 pahp console   25 Sep 13 20:45 labs -&gt; /proj/some/link/
+-rwxr--r--   1 pahp console  171 Sep  9 09:18 loadimage.sh*
+drwxrwxrwx   1 pahp console  512 Sep 13 20:45 worldwriteable/
+^ ^  ^  ^--- other permissions
+| |  '------- group permissions
+| '---------- user permissions
+'------------ file type: d=directory, l=symbolic link, - means regular file
+</pre>
+
+<p />Here's an example bitstring split into components: 
+
+<p />
+<pre>
+   d     rwx     rwx    rwx
+type    user    group  other
+</pre>
+
+
+<p />In the above example, the owner of the file <tt>gpl.txt</tt> has read and write permission because the <tt>owner</tt> part of the bitstring is set to <tt>rw-</tt>. The owner (<tt>pahp</tt>) cannot execute this file, but that doesn't matter because it's just a text file. The group class <tt>console</tt> can read the file, as can the members of the other class -- everyone else. 
+
+<p />The directory <tt>john-1.7.2</tt> is only accessible by the owner and nobody else. Notice the <tt>d</tt> in the first place; this means that the file is a directory. 
+
+<p />The file <tt>labs</tt> is a "<a class="http" href="http://en.wikipedia.org/wiki/Symbolic_link">symbolic link</a>" (sometimes called "soft link") to the directory <tt>/proj/some/link/</tt>. Symbolic links are a special kind of file that is a pointer to a disk location (a "pathname" which may or may not exist). Permissions on symbolic links do not work as their <tt>lrwxrwxrwx</tt> permissions might lead you believe. 
+
+<p />In addition to the 9 bits required to store the <tt>user</tt>, <tt>group</tt>, and <tt>other</tt> permissions of a file, there are three kinds of "additional permissions" that are rarely used but are extremely important to understand. The additional permissions are known as the <em>setuid bit</em>, <em>setgid bit</em>, and <em>sticky bit</em>. Each special bit has a different function depending on where it is used: 
+
+<p />When the the special bits are used on regular files: 
+
+<ul><li><p />The setuid bit on an executable file means that the file will run as the userid of the file's <em>owner</em> as opposed to the userid of the user executing the file. This is done to allow users to perform tasks that temporarily require the user to be someone else, such as changing passwords or restarting a service. Any program with the UID bit set must be carefully written so as to block all misuse. Innumerable vulnerabilities have stemmed from setuid <strong>root</strong> programs with security holes that allowed users to execute other commands as root. 
+</li><li><p />The setgid bit on an executable file is like the setuid bit, except that the process gains the effective user of the file's <em>group</em>, not its owner or the user executing the file. 
+</li><li>The "sticky bit" was used in the olden days to tell the kernel to keep an executable's image in memory so that it would not have to be reloaded from disk. This was commonly done with programs such as editors that were used regularly but had a significant load time. Modern systems use the "sticky bit" for other uses. 
+</li></ul><p />When the special bits are used on directories, they have different meanings altogether. Search online to discover what those meanings are on Linux systems.
+
+<p />Every file has permissions of some kind set for the each of the three classes, using the three types of basic permissions: <tt>read</tt>, <tt>write</tt>, and <tt>execute</tt> (and the three special bits). These permissions have a default value (based on the system umask) when the file is created. Permissions can be changed with command line utilities such as <tt>chmod</tt> and <tt>chown</tt>, which are discussed <a href="#permtools">later in this document</a>. 
+
+<p />These permissions are fairly self explanatory when applied to files, but when applied to directories their meanings are <strong>not always intuitive</strong>. In particular, permissions set on a directory <strong>do not always apply to that directory's contents</strong>, and the concepts of "read", "write", and "execute" as they pertain to directories is not obvious. (It helps to think of a directory as a file which contains links to other files, rather than as a nested series of containers -- experiment on SPHERE to determine how they really interact!) 
+
+<p />Furthermore, while the special bits are commonly overlooked, they have important meanings with <strong>incredible significance</strong> in terms of security. You are encouraged to play with these permissions and read other materials in order to fully understand how they are interpreted. 
+
+<p /><span class="anchor" id="criticisms"></span> 
+<h3>Criticisms</h3>
+
+<p />Traditional Unix permissions date back to the early 1970s. While simple and inexpensive to implement and evaluate, they have long been criticized for being out of date and woefully inexpressive compared to the power of other access control systems. Other systems (such as Microsoft Windows and other ACL models for Unix) have more than three access groups, nested groups, explicit deny lists, the ability to specify write permissions for changing, creating, and deleting (with Unix permissions they are largely the same), the ability to consider arbitrary state in evaluating the ACLs (such as time of day, network address, etc.), the ability to make files invisible to unprivileged users, and many other features that traditional Unix permissions lack. 
+
+<p />Another important and oft-criticized fact is that Unix permissions do not exactly reflect the current state of the permissions configuration on the system. For example, while Unix checks the file permissions at the moment a file is <em>opened</em>, it only checks those permissions <em>once</em> for each <tt>open</tt> system call. This means that the permissions are only tested when you <em>first open the file for reading, writing, or executing</em>, <strong>not</strong> each time you access or modify the file's contents via an open file descriptor. If a user opens a file, and immediately thereafter all permissions on that file for that user are removed, the user with the open file descriptor will <em>still</em> have access to the resource according to the permissions set <em>when the file was opened</em>, even if the <em>current</em> permissions deny reading, writing, or execution. 
+
+<p />Furthermore, the traditional Unix permissions and authentication system assigns group membership and other credentials at login time and <em>never</em> checks them again -- this means that system password, login permission, group membership details in <tt>/etc/group</tt> and other details changed <em>after</em> you log in are <strong>not</strong> reflected in your processes until you log out and log back in or the process with those credentials is restarted. For example, this means that any change to a user group is fully applied only when all affected processes have been restarted. Another example is that if an attacker steals a password and logs in to a system before that account is disabled or the password is changed, the attacker will still have that level of authentication until he or she logs out. 
+
+<div class="infobox">
+<p />
+<img src="idea.png" />
+This is an example of a <i>time-of-check vs. time-of-use</i> (TOCTOU) problem.
+</div>
+
+<p />These design decisions were made to limit the space occupied by and CPU cycles spent evaluating system permissions. As long as the semantics of the system (including the above criticisms) are fully understood, it can be an effective, acceptably secure solution for many purposes. In fact, in some ways, its simplicity and even naivete make it more transparent and easily understandable when compared to more complex systems. For these and many other reasons, the traditional Unix file permissions are still in wide use, over 40 years after their initial deployment. 
+
+<p /><span class="anchor" id="sudo"></span> 
+<h3>sudo and Alternatives</h3>
+
+<p />Some applications simply require stronger guarantees, finer granularity, or other features that the traditional permissions cannot express. For those applications, users have many alternatives. <tt>sudo</tt> is one simple extension to traditional Unix permissions that has become very popular. 
+
+<p /><strong>sudo</strong> is a setuid root application with its own ACL (stored in <tt>/etc/sudoers</tt>) that specifies, with fine granularity, tasks that users and groups can perform as root. For example, sudo could be used to allow a user to act as root in order to kill processes with a specific name. The user would otherwise have no additional privileges. This is an example of a perfect use for setuid root programs -- granting strongly-constrained privileges to unprivileged users. 
+
+<p />However, sudo is a double edged sword. On the one hand, it greatly enhances the expressiveness of Unix permissions without actually changing the permissions system. On the other hand, if improperly configured, it offers <strong>easy access to root</strong>. For more information on sudo and the sudoers ACL format, please see the manpages for sudo and sudoers (the configuration file), or other sudo-related material online (in particular regarding sudo exploits). 
+
+<p />Beyond sudo, two broader and more revolutionary alternatives for Linux permissions include SELinux and grsecurity, while other options exist including LDAP, Novell eDirectory, and other permissions systems for other operating systems. (We won't be using any of these.) 
+
+<span class="anchor" id="permtools"></span> 
+<h3>Software Tools</h3>
+<p />
+
+<span class="anchor" id="adduser"></span> 
+
+<p />
+
+<h4>adduser, chfn, passwd: add users to a system</h4>
+
+<p />
+<tt>adduser</tt> is the tool available for adding users to the system. To create a new user, execute: 
+
+<p />
+
+<pre>$ adduser username
+</pre>
+
+<p />
+<tt>adduser</tt> will copy files from the <tt>/etc/skel</tt> directory to become the new homedir of the new user in the <tt>/home/</tt> directory. You can specify a different home directory or automatically add the new user to groups; those options can be found in the <tt>adduser</tt> manpage. 
+
+<p />
+<tt>adduser</tt> does not set any <tt>finger</tt> information for the user (this is not strictly necessary anyway), but the tool <tt>chfn</tt> will do that: 
+
+<p />
+
+<pre>$ sudo chfn jimbo
+Changing finger information for jimbo.
+Name []: ...
+</pre>
+
+<p />
+By default, the user is created with a "locked out" account with no password set. To set the password, use the command <tt>passwd</tt>: 
+
+<p />
+
+<pre>$ sudo passwd jimbo
+Changing password for user jimbo.
+New Unix password:
+Retype new Unix password:
+passwd: all authentication tokens updated successfully.
+</pre>
+
+<p />
+<tt>passwd</tt> will complain if it doesn't like the password you enter, but will accept anything with enough prodding. 
+
+<p />
+Once an account is created, you can log into it in a number of ways: 
+
+<ol type="1"><li><p />
+If logged in to the system where you created the account, you can execute <tt>ssh&nbsp;newuser@localhost</tt> to reconnect locally as the new user with the new password. 
+</li><li><p />
+If local, you can also use the <tt>su</tt> command <tt>su&nbsp;newuser</tt> to change to that user. This does not always update all access credentials, however. This method can also be used to become root by entering <tt>sudo&nbsp;su&nbsp;-</tt>. 
+</li><li><p />
+If logged in to your XDC, you can ssh to the node as the new user. 
+
+</li></ol><p />
+<span class="anchor" id="addgroup"></span> 
+
+<p />
+
+
+<h4>groupadd: add groups to a system</h4>
+
+
+<p />
+<tt>groupadd</tt> adds a new group to the system with a unique ID (by default). Example: 
+
+<p />
+
+<pre>$ groupadd newgroup
+</pre>
+
+<p />
+See <tt>man&nbsp;groupadd</tt> for more information. 
+
+<p />
+<span class="anchor" id="usermod"></span> 
+
+<p />
+
+<h4>usermod: modify a user</h4>
+
+
+<p />
+<tt>usermod</tt> can be used to modify many details of a preexisting user account. For more information, see <tt>man&nbsp;usermod</tt>. 
+
+<p />
+<span class="anchor" id="chown"></span> 
+
+<p />
+
+<h4>chown, chgrp: change ownership of a file</h4>
+
+
+<p />
+<tt>chown</tt> stands for <strong>ch</strong>ange <strong>own</strong>ership and is (unsurprisingly) used to change the owner and group of a file. 
+
+<p />
+The syntax is very simple. To change the owner of a file, execute: 
+
+<p />
+
+<pre>$ chown newowner filename
+</pre>
+
+<p />
+To change the owner and group classes of a file, execute: 
+
+<p />
+
+<pre>$ chown newowner:newgroup filename
+</pre>
+
+<p />
+<tt>chgrp</tt> stands for <strong>ch</strong>ange <strong>gr</strong>ou<strong>p</strong> and works very similarly to <tt>chown</tt>. To change the group of a file, execute: 
+
+<p />
+
+<pre>$ chgrp newgroup filename
+</pre>
+
+<p />
+Recursive and other options exist; see <tt>man&nbsp;chown</tt> or <tt>man&nbsp;chgrp</tt> for more information. 
+
+<p />
+<span class="anchor" id="chmod"></span> 
+
+<p />
+
+
+<h4>chmod: change the mode of a file</h4>
+
+<p />
+chmod stands for <strong>ch</strong>ange <strong>mod</strong>e and is used to change the permissions mode of a file. Earlier, we discussed how the POSIX ACL has three access classes. User (or owner), group, and other (or world). The permissions mode for each access class can be changed by the <tt g>chmod</tt> command.
+
+<p />
+There are two ways to use <tt>chmod</tt>; one is an <em>absolute numeric mode</em> and the other is a <em>symbolic mode</em>. 
+
+<p />
+
+
+<h5>chmod: absolute -- setting the permissions explicitly</h5>
+
+
+<p />
+In the absolute mode, <tt>chmod</tt> takes a file mode in 3 or 4 digits, each of which represents the absolute permission mode for one access class expressed in octal, where each number is a sum of the permission bits. Each permission has a unique value: <tt g>read</tt> permission is <tt class="backtick">4</tt>, <tt class="backtick">write</tt> permission is <tt class="backtick">2</tt>, and <tt class="backtick">execute</tt> permission is <tt class="backtick">1</tt>. These values represent the position of the permission in a 3-bit value. 
+
+<p />
+For example, the mode <tt g>777</tt> means "full permissions" because all bits are set in each access class. Similarly, <tt class="backtick">000</tt> means "no permissions" because all bits are unset in each access class. 
+
+<p />
+The 3-digit mode <tt g>777</tt> is the equivalent to the 4-digit mode <tt class="backtick">0777</tt> where the leading <tt class="backtick">0</tt> represents the "special" permission class of setuid, setgid, and sticky. Likewise, the modes <tt class="backtick">000</tt> and <tt class="backtick">0000</tt> are equivalent and represent the absence of permission. (The owner of the file and root still have the ability to change the file's mode by virtue of their ownership and superuser status.) Finally, if the 3-digit mode is used, <tt class="backtick">chmod</tt> always assumes that the special access class is <tt class="backtick">0</tt>. Therefore, if you set an suid-root file to mode <tt class="backtick">777</tt>, <tt class="backtick">chmod</tt> assumes that you meant mode <tt class="backtick">0777</tt>, which would take away the special permissions. This is consistent if you remember that octal modes represent <em>absolute permissions</em> and <em>the special group class is assumed to be <tt class="backtick">0</tt> if a 3-digit mode is provided.</em> 
+
+<p />
+The following is a table to help calculate permission modes:
+<div><table style="width: 200px"><tbody><tr>  <td colspan="12" style="text-align: center;"><p />
+<strong>chmod absolute values</strong> </td>
+
+</tr>
+<tr>  <td colspan="3" style="text-align: center;">
+<p />
+ special<em> </em> </td>
+  <td colspan="3" style="text-align: center;"><p />
+ user<em> </em> </td>
+  <td colspan="3" style="text-align: center;"><p />
+ group<em> </em> </td>
+
+  <td colspan="3" style="text-align: center;"><p />
+ other<em> </em> </td>
+</tr>
+<tr>  <td>
+<p />
+<strong>s</strong> </td>
+  <td><p />
+<strong>g</strong> </td>
+  <td><p />
+<strong>t</strong> </td>
+
+  <td><p />
+<strong>r</strong> </td>
+  <td><p />
+<strong>w</strong> </td>
+  <td><p />
+<strong>x</strong> </td>
+  <td><p />
+<strong>r</strong> </td>
+  <td><p />
+<strong>w</strong> </td>
+
+  <td><p />
+<strong>x</strong> </td>
+  <td><p />
+<strong>r</strong> </td>
+  <td><p />
+<strong>w</strong> </td>
+  <td><p />
+<strong>x</strong> </td>
+</tr>
+
+<tr>  <td>
+<p />
+4 </td>
+  <td><p />
+2 </td>
+  <td><p />
+1 </td>
+  <td><p />
+4 </td>
+  <td><p />
+2 </td>
+  <td><p />
+1 </td>
+
+  <td><p />
+4 </td>
+  <td><p />
+2 </td>
+  <td><p />
+1 </td>
+  <td><p />
+4 </td>
+  <td><p />
+2 </td>
+  <td><p />
+1 </td>
+
+</tr>
+</tbody></table></div>
+
+
+<p />
+For example, full access is <tt g>0777</tt>, which represents: 
+<div><table><tbody><tr>  <td colspan="3" style="text-align: center;"><p />
+ special<em> </em> </td>
+  <td colspan="3" style="text-align: center;"><p />
+ user<em> </em> </td>
+  <td colspan="3" style="text-align: center;"><p />
+ group<em> </em> </td>
+
+  <td colspan="3" style="text-align: center;"><p />
+ other<em> </em> </td>
+</tr>
+<tr>  <td>
+<p />
+<strong>s</strong> </td>
+  <td><p />
+<strong>g</strong> </td>
+  <td><p />
+<strong>t</strong> </td>
+
+  <td style="background-color: #ff8080"><p />
+<strong>r</strong> </td>
+  <td style="background-color: #ff8080"><p />
+<strong>w</strong> </td>
+  <td style="background-color: #ff8080"><p />
+<strong>x</strong> </td>
+  <td style="background-color: #80ff80"><p />
+<strong>r</strong> </td>
+  <td style="background-color: #80ff80"><p />
+<strong>w</strong> </td>
+
+  <td style="background-color: #80ff80"><p />
+<strong>x</strong> </td>
+  <td style="background-color: #8080ff"><p />
+<strong>r</strong> </td>
+  <td style="background-color: #8080ff"><p />
+<strong>w</strong> </td>
+  <td style="background-color: #8080ff"><p />
+<strong>x</strong> </td>
+</tr>
+
+<tr>  <td>
+<p />
+4 </td>
+  <td><p />
+2 </td>
+  <td><p />
+1 </td>
+  <td style="background-color: #ff8080"><p />
+4 </td>
+  <td style="background-color: #ff8080"><p />
+2 </td>
+  <td style="background-color: #ff8080"><p />
+1 </td>
+
+  <td style="background-color: #80ff80"><p />
+4 </td>
+  <td style="background-color: #80ff80"><p />
+2 </td>
+  <td style="background-color: #80ff80"><p />
+1 </td>
+  <td style="background-color: #8080ff"><p />
+4 </td>
+  <td style="background-color: #8080ff"><p />
+2 </td>
+  <td style="background-color: #8080ff"><p />
+1 </td>
+
+</tr>
+<tr>  <td colspan="3" style="text-align: center;">
+<p />
+ 0 </td>
+  <td colspan="3" style="text-align: center; ; background-color: #ff8080"><p />
+<strong>7</strong> </td>
+  <td colspan="3" style="text-align: center; ; background-color: #80ff80"><p />
+ <strong>7</strong> </td>
+  <td colspan="3" style="text-align: center; ; background-color: #8080ff"><p />
+ <strong>7</strong> </td>
+
+</tr>
+</tbody></table></div>
+
+
+<p />
+There are no special bits set, so the <tt g>special</tt> octal digit is <tt class="backtick">0</tt>, while all three bits in each other class are set. Each set of bits totals 7 (4 + 2 + 1), so the mode is <tt class="backtick">0777</tt>. 
+
+<p />
+Another example is mode <tt g>2755</tt>, which represents <tt class="backtick">setgid</tt> (2), plus "full access" for <tt class="backtick">user</tt> (4 + 2 + 1) and <tt class="backtick">write</tt> and <tt class="backtick">execute</tt> (4 + 1) access for both the <tt class="backtick">group</tt> and <tt class="backtick">other</tt> class. 
+<div><table><tbody><tr>  <td colspan="3" style="text-align: center;"><p />
+ special<em> </em> </td>
+
+  <td colspan="3" style="text-align: center;"><p />
+ user<em> </em> </td>
+  <td colspan="3" style="text-align: center;"><p />
+ group<em> </em> </td>
+  <td colspan="3" style="text-align: center;"><p />
+ other<em> </em> </td>
+
+</tr>
+<tr>  <td>
+<p />
+<strong>s</strong> </td>
+  <td style="background-color: #808080"><p />
+<strong>g</strong> </td>
+  <td><p />
+<strong>t</strong> </td>
+  <td style="background-color: #ff8080"><p />
+<strong>r</strong> </td>
+
+  <td style="background-color: #ff8080"><p />
+<strong>w</strong> </td>
+  <td style="background-color: #ff8080"><p />
+<strong>x</strong> </td>
+  <td style="background-color: #80ff80"><p />
+<strong>r</strong> </td>
+  <td><p />
+<strong>w</strong> </td>
+  <td style="background-color: #80ff80"><p />
+<strong>x</strong> </td>
+
+  <td style="background-color: #8080ff"><p />
+<strong>r</strong> </td>
+  <td><p />
+<strong>w</strong> </td>
+  <td style="background-color: #8080ff"><p />
+<strong>x</strong> </td>
+</tr>
+<tr>  <td>
+<p />
+4 </td>
+  <td style="background-color: #808080"><p />
+2 </td>
+
+  <td><p />
+1 </td>
+  <td style="background-color: #ff8080"><p />
+4 </td>
+  <td style="background-color: #ff8080"><p />
+2 </td>
+  <td style="background-color: #ff8080"><p />
+1 </td>
+  <td style="background-color: #80ff80"><p />
+4 </td>
+  <td><p />
+2 </td>
+
+  <td style="background-color: #80ff80"><p />
+1 </td>
+  <td style="background-color: #8080ff"><p />
+4 </td>
+  <td><p />
+2 </td>
+  <td style="background-color: #8080ff"><p />
+1 </td>
+</tr>
+<tr>  <td colspan="3" style="text-align: center; ; background-color: #808080">
+<p />
+ <strong>2</strong> </td>
+
+  <td colspan="3" style="text-align: center; ; background-color: #ff8080"><p />
+ <strong>7</strong> </td>
+  <td colspan="3" style="text-align: center; ; background-color: #80ff80"><p />
+ <strong>5</strong> </td>
+  <td colspan="3" style="text-align: center; ; background-color: #8080ff"><p />
+ <strong>5</strong> </td>
+</tr>
+</tbody></table></div>
+
+
+<p />
+Absolute modes are applied like this: 
+
+<p />
+
+<pre>$ chmod 0755 somefile.sh
+</pre>
+
+<p />
+Absolute mode is great for setting things to be exactly what you want, or imposing a radically different order onto a file or directory, but it's not very good for adding the sticky bit to a file. For that kind of work (or if the octal modes just confuse you) the symbolic mode is well suited. 
+
+<p />
+
+<h5>chmod: symbolic -- more user-friendly</h5>
+
+
+<p />
+The symbolic mode works pretty much the way you would expect. To add the <tt g>execute</tt> bit to the <tt class="backtick">user</tt> class, you would execute a command like this: 
+
+<p />
+
+<pre>$ chmod u+x somefile.sh
+</pre>
+
+<p />
+Or to add <tt g>execute</tt> to all three classes: 
+
+<p />
+
+<pre>$ chmod ugo+x somefile.sh
+</pre>
+
+<p />
+To make a file <tt g>setuid</tt>: 
+
+<p />
+
+<pre>$ chmod u+s somefile.sh
+</pre>
+
+<p />
+To remove all permissions: 
+
+<p />
+
+<pre>$ chmod ugo-rwxsgt somefile.sh
+</pre>
+
+<p />
+Some people are so put off by the absolute mode that they never learn it -- you'll find with experience that both methods of setting permissions can be expeditious depending on the situation. More information is available in the <tt g>chmod</tt> manpage. 
+
+<p />
+Regardless of how you set permissions, it is critical that you use the "principle of least privilege" and only grant the privileges that are necessary for proper operation.
+
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+
+<p />You are Wilbar Memboob, the Security Administrator of <a class="nonexistent" href="/classes/seclabs/moin.cgi/FrobozzCo">FrobozzCo</a> (<em>"You name it, we make it"</em>).  You are looking to hire a new system administrator to replace the guy you just fired -- unfortunately, even though his resume looked great on paper and he interviewed well, once you put him at a console he clearly had no idea what he was doing. 
+
+<p />To him, proper permissions meant  that the application worked; if it was secure then that was just icing on the cake. You should have done something when the other admins starting calling him  "Triple-7" -- a.k.a. "wide open". But it was when he changed the company fileserver directory permissions to "ugo+rwx" and the projected budget was "released" early -- including a list of the employees being laid off -- that he signed his own pink slip. 
+
+<p />To keep this from happening again, you've created a little test for your new applicants to take. Unfortunately, before you can grade the applicants, you need to create an answer key. 
+
+<h2>Assignment Instructions</h2>
+
+<p>In the assignment portion of this exercise, you're going to create an answer key for your "hiring exam." You'll need to swap in your nodes and complete the exercises below.
+
+<h3 class="anchor" id="setup">Setup</h3>
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>posix</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your <tt>posix</tt> node. <p /></ol></ol><p />
+	
+
+Changes to SPHERE nodes are lost when the nodes are swapped out. This means that you must manually save your work between working on nodes in order to keep it. However, <b>this exercise</b> includes experimental scripts to help you save and restore your work. 
+
+<p /><span class="anchor" id="save"></span> 
+
+<p />
+<h4>Saving your Work</h4>
+
+<p />After completing the POSIX exercises on the <tt>posix</tt> node, cd into the <tt>/root</tt> directory and execute the script <tt>/root/submit.sh</tt>; like this: 
+
+<p /><pre>$&nbsp;./submit.sh</pre> 
+
+<p />...it will make a tarball of all the relevant files and their permissions, including the /root/permissions-answers.txt file. <strong>You must copy or move the created tarball into your group directory, otherwise it will be lost upon swapout.</strong> 
+
+<p /><span class="anchor" id="restore"></span> 
+
+<p />
+
+<h4>Restoring Your Work</h4>
+
+<p />The <strong>experimental</strong> script <tt>/root/restore.sh</tt> on the <tt>posix</tt> node, takes as input the path to a tarball created by <tt>submit.sh</tt> described above and restores the files to their proper locations on the system. This includes all the files you are asked to create or change in the first part. 
+
+<div class="warning">
+<p />
+<img src="alert.png" />
+<b>WARNING:</b> These scripts do <strong>not</strong> back up all arbitrary changes you may have made to the node (e.g., changing a peripheral configuration file), and it does not "merge" system files with submission files -- <em>it only restores submission files copied by <tt>submit.sh</tt></em>. You shouldn't need to change anything else, but see <tt>submit.sh</tt> and <tt>restore.sh</tt> to see exactly what those scripts do, and do not delete any of your submission tarballs so that you can go back to an earlier version if need be. 
+</div>
+
+<p />To use the <tt>restore.sh</tt>, copy a tarball created by <tt>submit.sh</tt> into the <tt>/root/</tt> directory and execute this command: 
+
+<p />
+<pre>$&nbsp;./restore.sh&nbsp;username-permissions-123123123.tar.gz</pre> 
+
+<p />You will be asked if you want to automatically overwrite files, and if you want to selectively restore some files and not others. The options are self-explanatory. 
+
+<p />Finally, if you don't trust the scripts, you can always make your own backups into your group directory and restore them by hand if you prefer. 
+
+<div class="warning">
+<p />
+<img src="alert.png" />
+<strong>NOTE:</strong> You do not need to run the submit and restore scripts with sudo. However, if you use sudo to run <tt>submit.sh</tt>, your tarball will be named after the <tt>root</tt> user. This is OK -- just run <tt>sudo&nbsp;./restore.sh&nbsp;root-permissions-2134234243.tar.gz</tt>. 
+</div>
+
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>
+
+<p />Your task is to create an answer key for the following test: 
+
+<p />
+<h4>FrobozzCo Permissions</h4>
+
+<p />This test is a part of the application process for the administrator position at <a class="nonexistent" href="/classes/seclabs/moin.cgi/FrobozzCo">FrobozzCo</a>. You will be presented with a number of tasks and questions; the tasks must be executed on the <tt>posix</tt> node of the SPHERE experiment we have created for this purpose (you can use the <tt>client</tt> node for testing), while the questions must be answered in a plain text file that will be submitted with the results of your tasks. See below for further instructions. 
+
+<p />
+<h4>Part 1: POSIX File Permissions and 'sudo'</h4>
+
+
+<p />
+<h5>Instructions</h5>
+
+<p />The following section includes a number of permissions and file creation exercises. This test will be performed on a live network testbed with a full complement of standard utilities and editors. In addition, you are fully encouraged to use the Internet, man pages, help screens, and any other resources available to you in the execution and answering of these problems. 
+
+<p />Please read and use these <a href="#ambiguity">disambiguation rules</a> for setting the correct permissions. Also, make sure that you test your answers -- POSIX permissions are simple in theory, but in practice many combinations have counterintuitive effects! 
+
+<p />Your answers will consist of an archive, created by the <tt>submit.sh</tt> script described above. The archive will contain:
+<ol>
+	<li>A copy of your permissions modifications. You will be graded only on the correctness of your answers, not their elegance nor how efficiently you came to them.</li>
+	<li>Your written answers to the numbered short answer questions. These should be written in the file <tt>/root/permissions-answers.txt</tt> on the server system using an editor (such as <tt>vim</tt>).</li>
+</ol>
+
+<p />See below for instructions on <a href="#submitting">submitting</a> your answers. 
+
+
+<p />
+<span class="anchor" id="homedirsec"></span>
+<h5>Home Directory Security</h5>
+
+<div class="warning">
+<p />
+<img src="alert.png" />
+<strong>Note:</strong> Admins -- members of the <tt>wheel</tt> group have <tt>sudo</tt> access. However, unless instructed to do so, use only standard UNIX ACLs -- don't give user accounts <tt>sudo</tt> permissions or consider the <tt>sudo</tt> access the 'wheel' group already has. Of course, <em>you</em> need to use <tt>sudo</tt> to create the accounts, edit root files, etc... this is exactly what <tt>sudo</tt> is for. 
+</div>
+
+<p />Your server needs two home directories. <strong style="color: red;">Important:</strong> We will not be using the <tt>/home</tt> directory for the users in this lab. Instead, you will be using <tt>/emp</tt> and also<tt>&nbsp;/admins&nbsp;</tt>for your team. Normal home directories are private, while the homedirectories in <tt>&nbsp;/admins&nbsp;</tt>will be publicly viewable and somewhat collaborative. 
+
+<div class="infobox">
+	<p>
+	<img src="idea.png" /> You can test the permissions settings on <tt>posix</tt> by logging in as the various accounts you've created! For example, after creating the account <tt>larry</tt>, you can log in by executing <tt>ssh larry@localhost</tt> and entering the password you used for <tt>larry</tt>. In this way, you can see if the permissions you set meet the requirements. 
+	</p>
+
+</div>
+
+<ol><li><p />Create the <tt>/admins</tt> and <tt>/emp</tt> directories. 
+	</li><li><p />Create the groups <tt>emp</tt> and <tt>wheel</tt> (see <tt>man groupadd</tt>). 
+	</li><li><p />Create the normal (i.e., non-admin) user accounts <tt>larry</tt>, <tt>moe</tt>, and <tt>curly</tt> using <tt>adduser</tt>. You may set the passwords to anything you like.
+	</li><li><p />Add the non-admin accounts to the <tt>emp</tt> group by editing <tt>/etc/group</tt> or using <tt>usermod</tt>. 
+	</li><li><p />Create the admin user accounts <tt>ken</tt>, <tt>dmr</tt>, and <tt>bwk</tt> -- specifying that the home directory for each admin should be located at <tt>/admins/username</tt> -- where <tt>username</tt> is <tt>ken</tt>, <tt>dmr</tt> or <tt>bwk</tt>. In other words, admin homedirs are <b>not</b> in <tt>/emp</tt>. (See <tt>man adduser</tt> for special homedirectory options.) You may set the passwords to anything you like.
+	</li><li><p />Add the admin accounts to the <tt>wheel</tt> group by editing <tt>/etc/group</tt> or using <tt>usermod</tt>. (Ensure that admins are <b>not</b> part of the <tt>emp</tt> group.)
+	</li></ul>
+</li><li>add <tt>larry</tt>, <tt>bwk</tt>, and <tt>dmr</tt> to <tt>ken</tt>'s group. 
+</li><li>add <tt>moe</tt>, <tt>dmr</tt>, and <tt>ken</tt> to <tt>bwk</tt>'s group. 
+</li><li>add <tt>curly</tt>, <tt>ken</tt>, and <tt>bwk</tt> to <tt>dmr</tt>'s group. 
+</li>
+<li><p />On this system, default permissions for new home directories allow <tt>other</tt> users (i.e., users that are not the <tt>owner</tt> or in the specified <tt>group</tt>) to read and execute files in the directory. This is too permissive for us. Set the mode on the home directories in <tt>/emp</tt> so that <tt>owner</tt> can read, write, and execute, <tt>group</tt> can read and execute and <tt>other</tt> has no permissions. (Set the mode on the homedir only -- do not set it recursively.)</li>
+<li><p />Individual home directories should now be inaccessible to <tt>other</tt> users. Now, set the permission mode on <tt>/emp</tt> itself so that normal users can't list the contents of <tt>/emp</tt> but can still access their home directories <i>and</i> so that members of the <tt>wheel</tt> group have full access to the directory (without using <tt>sudo</tt>).
+</li><li><p />By default, each homedir is <i>owned</i> by its user, and the homedir's <i>group</i> is set to the group named after the user. (For example, <tt>ken</tt>'s homedir is set to <tt>ken:ken</tt> -- i.e., <tt>ken</tt> is the owner and the group is set to <tt>ken</tt>'s group.) Set the permission <i>modes</i> recursively on the individual homedirectories in <tt>/admins</tt> (see <tt>man chmod</tt>) so that: 
+	<ul><li><p />owners have <em>full access</em> 
+		</li><li><tt>group</tt> users (users who are in the group associated with a user's home directory) can read and create files in that homedir 
+	</li><li><tt>other</tt> users can read and execute any files (unlike the home directories in <tt>/emp</tt>) 
+	</li><li>files created by a group member in that homedir should be set to the homedir owner's group. (Hint: Look up what the SUID and SGID bits do on directories.) 
+	</li><li><p />Example: <tt>larry</tt> is in <tt>ken</tt>'s group. <tt>larry</tt> can create files in ken's homedir, and those files are owned by <tt>larry</tt>, but are assigned to <tt>ken</tt>'s group rather than <tt>larry</tt>'s group. <tt>moe</tt>, not in <tt>ken</tt>'s group, can only read and execute files. (Note that permissions for normal <tt>emp</tt> user homedirs are not changed.)
+	</li>
+	</ul>
+	</li>
+</ol><p />
+
+<span class="anchor" id="ballotbox"></span>
+<h5>The Ballot Box</h5>
+
+<p />All regular employees use this directory to submit votes for "employee of the month". 
+
+<ol>
+	<li><p />Create the <tt>/ballots</tt> directory. </li>
+	<li><p />Set the permissions on <tt>/ballots</tt> so that it is owned by root and users can write files into the directory but cannot list the contents of the directory.</li>
+	<li><p />Furthermore, set it so that members of the <tt>wheel</tt> group have no access (not including sudo). </li>
+	<li><p /><strong>Short Answer 1:</strong> Is there any way that employees can read the ballots of other users? If so, what could be done to stop this? If not, what prevents them from reading them?</li>
+	<li><p /><strong>Short Answer 2:</strong> What does the 'x' bit mean when applied to directories? </li>
+</ol><p />
+
+<span class="anchor" id="tpsreports"></span>
+<h5>The TPS Reports Directory</h5>
+
+<p />Admin employees submit TPS reports in this partially collaborative directory. 
+
+<ol>
+	<li><p />Create the <tt>/tpsreports</tt> directory. </li>
+	<li><p />Create the <tt>tps</tt> user. </li>
+	<li><p />Set the permissions on <tt>/tpsreports</tt> so that it is owned by <tt>tps</tt> and that <tt>tps</tt> and members of the <tt>wheel</tt> group have full access to the directory, but so that no one else has access to the directory.</li>
+	<li><p />Furthermore, configure it so that files written into it are still owned by the <tt>wheel</tt> group, but so that one member of <tt>wheel</tt> cannot delete another member's files. </li>
+	<li><p /><strong>Short Answer 3:</strong> Which users on the system can delete arbitrary files in the <tt>/tpsreports</tt> directory? </li>
+	<li><p /><strong>Short Answer 4:</strong> Is there any way that non-<tt>wheel</tt> employees can read files in the <tt>/tpsreports</tt> directory? </li>
+	<li><p /><strong>Short Answer 5:</strong> What do '0' permissions mean for the owner of a directory? What privileges do they have over files in that directory? </li>
+</ol><p />
+
+
+<span class="anchor" id="sudoprobs"></span>
+<h5>sudo: Editing Configuration Files</h5>
+
+<div class="infobox">
+<p />
+<img src="idea.png" />
+<em>For the following three short answer questions, assume that your answers are unrelated; that is, your answer for question 6 does not impact the answer for questions 7 or 8.</em> 
+</div>
+
+<p />All members of the <tt>wheel</tt> group do system administration on the server. Because of this, they all have full sudo access to <tt>root</tt> privilege with the <tt>/etc/sudoers</tt> directive '<tt>%wheel&nbsp;ALL=(ALL)&nbsp;NOPASSWD:&nbsp;ALL</tt>'. The "NOPASSWD" means they don't have to enter a passwd upon sudo invocation. 
+
+<p />The employee <tt>larry</tt> is the webmaster for the system, so he has some extra privilege compared to the other employees. For example, <tt>larry</tt> has <tt>sudo</tt> access to the command 
+
+<p /><tt>/usr/bin/vim&nbsp;/etc/httpd/conf/httpd.conf&nbsp;</tt> 
+
+<p />... with the directive 
+
+<p />
+<pre>larry ALL=(ALL) /usr/bin/vim /etc/httpd/confs/httpd.conf</pre>
+<p />... so that he can update the configuration of the webserver. 
+
+<p /><strong>Short Answer 6:</strong> Is this safe? Why or why not? If it is not safe, is there a better way to give <tt>larry</tt> this access? If it is safe, how do you <em>know</em> it is safe? (Hint: search online for common <tt>sudo</tt> issues.) 
+
+<p />
+
+<h5>sudo: Restarting System Processes</h5>
+
+<p />As a part of his webmaster duties, <tt>larry</tt> often requests the <tt>wheel</tt> group to restart the Apache server with the command '<tt>/etc/init.d/httpd&nbsp;restart</tt>'. It would make everyone very happy if there was a secure way to let <tt>larry</tt> restart the Apache server (but not give him any other access). 
+
+<p /><strong>Short Answer 7: </strong>Assuming the init script <tt>/etc/init.d/httpd</tt> has no unknown vulnerabilities, is it safe to grant <tt>larry</tt> <tt>sudo</tt> access to the command <tt>/etc/init.d/httpd restart</tt>? If this is not secure, explain why. 
+
+<p />
+
+<h5>POSIX and sudo: Two Wrongs Make a Much Bigger Wrong</h5>
+
+<p />Carefully examine the permissions on the server. Look at <tt>/etc/group</tt>, <tt>/etc/sudoers</tt>, and the files in the <tt>/admins</tt> and <tt>/home</tt> directories (and their subdirectories). 
+
+<p /><strong>Short Answer 8: </strong>Is there some way that <tt>moe</tt> or <tt>curly</tt> could subvert this system to gain <tt>root</tt> privileges? If not, how do you know this is true? 
+
+<p /><b>Hint:</b> Consider what happens during the UNIX login process -- the time between when the user enters the correct password and when they can interact with their shell. 
+
+<p />
+</div>
+
+<!-- <span class="anchor" id="extra"></span> 
+<h2>Extra Credit</h2>
+
+This section describes any extra credit assignments, how to do them, what to measure, etc. If there are no extra credit assignments for this exercise remove this section from here and from the TOC.
+
+-->
+
+<span class="anchor" id="tips"></span>
+<div class="level3">
+<h3>Tips and Tricks</h3>
+
+This section includes important rules and tips for making sure that your answers are correct.
+
+<p />
+<span class="anchor" id="ambiguity"></span>
+<h4>1. Rules for resolving filesystem permission ambiguities:</h4>
+
+<p />Permissions should <em>always</em> be set to reflect the <strong>least privilege</strong> required to fulfill the requirements. In POSIX permissions, every bit set represents <em>less security</em>, so we want to set as few bits as possible. Resolve any ambiguities with this cumulative list of guidelines: 
+
+<ol type="1"><li><p />Files you are instructed to create are to be owned by <tt>root</tt> unless otherwise specified. Doing the work as <tt>root</tt> should do this automatically. (You can become root by executing <tt>sudo&nbsp;su&nbsp;-</tt>.) 
+<ul><li>Exception: Files in homedirs should be owned by the homedir owner (useradd should do this by default for boilerplate files like .bash_login, etc). 
+</li></ul></li><li>When setting ownership of a file, set the group class to the same thing as the user (owner) class unless otherwise specified. 
+<ul><li><p />Example: Create the directory <tt>foo</tt>. Set <tt>www-data</tt> as the owner of <tt>foo</tt>. 
+</li><li><p />Answer: Set <tt>www-data</tt> to be the user (owner) and group class of <tt>foo</tt>. 
+</li><li><p />Example: Create the directory <tt>xyzzy</tt>. Set the group class to <tt>www-data</tt>. 
+</li><li><p />Answer: Set the group class to <tt>www-data</tt> but the user class should still be set to <tt>root</tt>. 
+</li></ul></li><li><p />Files whose permissions you are <em>not</em> otherwise instructed to change should stay at their default. 
+<ul><li><p />Example: Create directory <tt>baz</tt>. Create directory <tt>quux</tt> and set its permissions to be wide open. 
+</li><li><p />Answer: Don't change <tt>baz</tt>'s file mode. It should be owned by root (as per #1). Set <tt>quux</tt> permissions to <tt>0777</tt>. 
+</li></ul></li><li><p />For any files whose permissions you <em>are</em> instructed to change, unspecified permissions are <strong>always</strong> assumed to be 0 (no access). In other words, instructions for setting file permissions implicitly include all access groups (even those not explicitly mentioned). 
+<ul><li><p />Example: Set directory <tt>foo</tt> so that its owner has full access. 
+</li><li><p />Answer: The correct mode is <tt>0700</tt>, since no group or other permissions were specified and we assume that they are 0. 
+</li></ul></li><li>Permissions are assumed to be for all classes unless specified. 
+<ul><li><p />Example: Remove all permissions from <tt>/dev/hdc</tt>. 
+</li><li><p />Answer: Set <tt>/dev/hdc</tt> to mode <tt>000</tt> (root still has access of course). 
+</li><li><p />Example: Set read and write permissions on <tt>/etc/motd</tt>. 
+</li><li><p />Answer: <tt>/etc/motd</tt> should be set to mode 0666 -- all classes can read and write. 
+</li></ul></li><li><p />When granting permissions, setuid, setgid, and sticky bits are <strong>never</strong> granted unless specifically required to solve the problem. These bits are special and must be required by the nature of the question or be otherwise mentioned to be granted. 
+<ul><li>Example: Set a directory so that owner has full access and it's group class members can create files in it. 
+</li><li><p />Answer: The correct mode is <tt>0730</tt> because a user (in this case the group user) requires both write and execute to create files. The question didn't specify anything requiring setuid or setgid so they are not enabled. 
+</li><li><p />Note: the <tt>other</tt> class in this example has no access because the permission is assumed to be <tt>0</tt> (as per #4). 
+</li><li><p />Note: In #3 above, see that "wide open" for the directory quux meant <tt>0777</tt>  <strong>not</strong>  <tt>4777</tt> because setuid was not specified or required. 
+</li></ul></li><li>If any tasks are not possible with the standard POSIX permissions available in this exercise, explain why. 
+</li></ol><p />
+</div>
+
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+<p />Submit a tarball created by <tt>submit.sh</tt> to your instructor. You <strong>must</strong> use a tarball created by this script so that it will correctly save the permissions of the directories. 
+
+
+</div>
+</body></html>
+
