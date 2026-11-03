@@ -90,6 +90,11 @@ You will use the commands <tt>ifconfig</tt>, <tt>route</tt>, and <tt>iptables</t
 <div class="level3">
 <h3>Tasks</h3>
 
+<div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+
 <span class="anchor" id="addresses"></span>
 <h4>Applying IP addresses</a></h4>
 
@@ -129,6 +134,10 @@ ifconfig
   
 Now make sure all these links are working. On ISrouter ping the SWrouter and NWrouter, on SWrouter ping on SWworkstation1, and on NWrouter ping NWworkstation1. You should receive replies to all these pings. If you don't, retrace your steps and ensure that you are changing correct interfaces on correct nodes.  
 
+<div class="ai">
+    <b>AI-option:</b> If you use AI to <b>accomplish these IP address changes</b>, you must provide a <i>hand-written</i> explanation of why you needed to use AI for this simple task. 
+</div>
+  
 <span class="anchor" id="routes"></span>
 <h4>Inserting routes in route tables</h4>
 
@@ -152,6 +161,10 @@ ip route show
 
 <p>When you complete this task, you should be able to ping every IP address from the table above (right column) from every node. Please do some spot checking. In particular make sure the endpoints can ping each other.
 
+<div class="ai">
+    <b>AI-option:</b> If you use AI to <b>accomplish these IP address changes</b>, you must provide a <i>hand-written</i> explanation of each new route that was added to each node. Specify the route, the interface, the command that was ran to add the route and the node where the command was run.
+</div>
+  
 <span class="anchor" id="privateIPs"></span> 
 <h4>Blocking the same "private addresses" as the Internet</h4>
 
@@ -233,6 +246,17 @@ where ethX is the interface with IP address 10.1.0.2.
 
 
 <p>As a security note, please understand that while port forwarding works well and is a long-standing way to grant access to servers on machines behind internet routers, it provides no confidentiality. That is, the data is not encrypted. There are a variety of other methods, also in widespread use, to achieve the same access plus additionally take steps to encrypt the traffic (ssh, stunnel, OpenVPN).</p> 
+
+<div class="ai">
+  <b>AI-option:</b> If you use AI to <b>create NAT and port-forwarding rules</b>, you must provide a <i>hand-written</i> explanation of each NAT rule added. Specify the rule, what it accomplishes and explain all of its parameter values and flags.
+   For all hand-written answers, you can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
+	    </ol>
+</div>
+
 
 <span class="anchor" id="glitches"></span>
 
