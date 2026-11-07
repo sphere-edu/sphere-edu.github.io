@@ -35,11 +35,11 @@ href="../../css//screen.css">
           <li><a href="#assignment">Assignment Instructions</a>
             <ol>
               <li><a href="#assign-setup">Setup</a>
-              </li><li><a href="#assign-exploit">Exploitation</a>
-              </li><li><a href="#assign-mitigate">Mitigation</a>
-
-
-              </li>
+	      <li><a href="#tasks">Tasks</a>
+		<ol>
+             <li><a href="#assign-exploit">Exploitation</a>
+              <li><a href="#assign-mitigate">Mitigation</a>
+		</ol>
             </ol>
           </li>
           <li><a href="#submission">Submission Instructions</a></li>
@@ -80,9 +80,17 @@ href="../../css//screen.css">
 <ol>
 	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
 </li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>hashcollision</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
-</li><li>After setting up the lab, access your <tt>target</tt> node. <p /></ol></ol><p />
+</li><li>After setting up the lab, access your <b>target</b> node. <p /></ol></ol><p />
 
-On <tt>target</tt> node, switch to <tt>/tmp/target/exercise</tt> folder.
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+<h3>Tasks</h3>
+  <div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+
+On <b>target</b> node, switch to <tt>/tmp/target/exercise</tt> folder.
 
 Compile the program:
 <pre>bash compile.sh
@@ -92,6 +100,7 @@ It can be run with
 <pre>./main N
 </pre>
 where <tt>N</tt> is the length of the input strings (including the newline character).
+
 
 <span class="anchor" id="assign-exploit"></span> 
 <h4> Exploitation </h4>
@@ -105,6 +114,11 @@ You can plot the execution time of processing malicious strings against that of 
 In order to prove a program is vulnerable to a hash-collision DoS attack, you need to show that the worst-case execution time is an order of magnitude worse than the best-case (polynomial vs linear).
 Play around with the <code>exploit.py</code> script, generating both malicious and random input until you find parameters that clearly show the difference in execution time growth.
 Plot these execution times.
+
+<div class="ai">
+  <b>AI-option:</b> If you use AI to <b>experiment with adjusting the script exploit.py</b>, you must provide <i>hand-written</i> explanation of which options were tried (a range is sufficient), which parameters were successful and why do you believe these were the right choices.
+</div>
+
 
 <span class="anchor" id="assign-mitigate"></span> 
 <h4> Mitigation </h4>
@@ -122,6 +136,16 @@ After making the change, remember to recompile with
 </pre>
 Then, repeat the experiment done in the Exploitation section, with the same parameters and redraw the graphs.
 Now, there should be no significant difference between execution time growth between the malicious and random strings.
+
+<div class="ai">
+  <b>AI-option:</b> If you use AI to <b>patch the vulnerable code</b>, you must provide <i>hand-written</i> explanation of which lines were changed, how and why this change was effective in eliminating the vulnerability. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
+	    </ol>
+</div>
+
 
 <span class="anchor" id="submission"></span>
 <h2>Submission Instructions</h2>

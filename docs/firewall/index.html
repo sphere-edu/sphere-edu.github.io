@@ -470,15 +470,15 @@ You can do any of this in reverse to test the connection from a server to a clie
 <span class="anchor" id="assignment"></span> 
 <h2>Assignment Instructions</h2>
 
-<p>In the assignment portion of this exercise, you're going to create an answer key for the <tt>iptables</tt> portion of the "hiring exam." You'll need to swap in your nodes and complete the exercises below.
+<p>In the assignment portion of this exercise, you're going to create an answer key for the <tt>iptables</tt> portion of the "hiring exam." 
 
 <h3 class="anchor" id="setup">Setup</h3>
 <ol>
 	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
 </li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>firewall</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
-</li><li>After setting up the lab, access your <tt>server</tt> node. <p /></ol></ol><p />
+</li><li>After setting up the lab, access your <b>server</b> node. <p /></ol></ol><p />
 
-<p />Changes to DETER nodes are lost when the nodes are swapped out. This means that you must manually save your work between working on nodes in order to keep it. However, <b>this exercise</b> includes experimental scripts to help you save and restore your work. 
+<p />Changes to experimental nodes are lost when the nodes are released. This means that you must manually save your work between working on nodes in order to keep it. However, <b>this exercise</b> includes experimental scripts to help you save and restore your work. 
 
 <p /><span class="anchor" id="save"></span> 
 
@@ -489,7 +489,7 @@ You can do any of this in reverse to test the connection from a server to a clie
 
 <p /><pre>$&nbsp;./submit.sh</pre> 
 
-<p />...it will make a tarball of all the relevant files, including the firewall.sh script you have updated (it will also copy files for the POSIX Permissions lab, but you do not need to bother with them; you should ignore the errors). <strong>You must copy or move the created tarball into your group directory, otherwise it will be lost upon swapout.</strong> <b>Note: do not run submit.sh with sudo!</b>
+<p />...it will make a tarball of all the relevant files, including the firewall.sh script you have updated (it will also copy files for the POSIX Permissions lab, but you do not need to bother with them; you should ignore the errors). <strong>You must copy the created tarball into your XDC, otherwise it will be lost when nodes are released.</strong> <b>Note: do not run submit.sh with sudo!</b>
 
 <p /><span class="anchor" id="restore"></span> 
 
@@ -497,7 +497,7 @@ You can do any of this in reverse to test the connection from a server to a clie
 
 <h4>Restoring Your Work</h4>
 
-<p />The <strong>experimental</strong> script <tt>/root/restore.sh</tt> on the <tt>server</tt> node, takes as input the path to a tarball created by <tt>submit.sh</tt> described above and restores the files to their proper locations on the system. This includes all the files you are asked to create or change in the first part, as well as the <tt>firewall.sh</tt> script for the second part. <b>Note: do not run restore.sh with sudo!</b>
+<p />Copy your tarball from your XDC to your newly allocated <b>server</b> node. The script <tt>/root/restore.sh</tt> on the <b>server</b> node, takes as input the path to a tarball created by <tt>submit.sh</tt> described above and restores the files to their proper locations on the system. This includes all the files you are asked to create or change in the first part, as well as the <tt>firewall.sh</tt> script for the second part. <b>Note: do not run restore.sh with sudo!</b>
 
 <div class="warning">
 <p />
@@ -523,13 +523,18 @@ You can do any of this in reverse to test the connection from a server to a clie
 <span class="anchor" id="tasks"></span>
 <div class="level3">
 <h3>Tasks</h3>
+  <div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+
 
 <p />Your task is to create an answer key for the following test: 
 
 <p />
 <h4>FrobozzCo Firewall Test</h4>
 
-<p />This test is a part of the application process for the administrator position at FrobozzCo. You will be presented with a number of tasks and questions; the tasks must be executed on the <tt>server</tt> node of the DETER experiment we have created for this purpose (you can use the <tt>client</tt> node for <a href="#fwtest">testing</a>). There are <b>no</b> short answer questions for this lab. See below for further instructions. 
+<p />This test is a part of the application process for the administrator position at FrobozzCo. You will be presented with a number of tasks and questions; the tasks must be executed on the <b>server</b> node (you can use the <b>client</b> node for <a href="#fwtest">testing</a>). There are <b>no</b> short answer questions for this lab. See below for further instructions. 
 
 <p />
 
@@ -555,22 +560,31 @@ You can do any of this in reverse to test the connection from a server to a clie
 <p />
 <pre>/root/firewall/extingui.sh</pre> 
 
-<p />If you make the server inaccessible with broken rules, don't worry -- you can reboot the node in the DETER console, and since the firewall <em>is not enabled by default</em>, you can log in in order to fix it. Your files will still be on the experimental node <strong>as long as you don't swap out the experiment</strong>.  (Of course, you can permanently save your files in your home directory.) 
+<p />If you make the server inaccessible with broken rules, don't worry -- you can reboot the node in the SPHERE UI (click on materialization, then click on details), and since the firewall <em>is not enabled by default</em>, you can log in in order to fix it. Your files will still be on the experimental node <strong>as long as you don't release the experimental nodes</strong>.
 
 <p />Finally, only your final product is evaluated -- not the number of times you have to reboot the server. You should expect to lock yourself out a few times. :-)
 
 <div class="warning">
-<p><img src='alert.png' /> Your experimental nodes have at least two networks. The first is a control network between your node and SPHERE. This is the network you use to connect to your nodes from your XDC. Your nodes also have an "experimental" network that connects all the machines in a given experiment. For this project, your experimental network connects <tt>server</tt> and <tt>client</tt></p>
+<p><img src='alert.png' /> Your experimental nodes have at least two networks. The first is a control network between your node and SPHERE. This is the network you use to connect to your nodes from your XDC. Your nodes also have an "experimental" network that connects all the machines in a given experiment. For this project, your experimental network connects <b>server</b> and <b>client</b></p>
 
 <p>The firewall only needs to limit the experimental network interface (the interface with the 10.0.x.x network) and should <strong>not</strong> ever limit the control network (172.30.x.x as of this writing) or you may cut yourself off from the node. The experimental interface is one of eth0-ethN and you can determine which using the command <tt>ifconfig</tt> and looking for the 10.x.x.x interface. Be warned that the specifc interface used may change with a reboot or different experimental node.</p>
 
 <p>See below for instructions on using environment variables to define the experimental interface in your firewall.sh script.</p>
 </div>
 
+<div class="ai">
+    <b>AI-option:</b> If you use AI to <b>give you firewall rules according to the specification below</b>, you must provide <i>hand-written</i> list of all the firewall rules, along with 1-2 sentences of explanation per rule about (a) why does this rule follow least-privilege principle and (2) what each parameter and each flag in the rule means. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
+	    </ol>
+</div>
+
 <p /><strong>Here's what the firewall needs to do:</strong> 
 
 <ol>
-	<li><p /><strong>passively ignore</strong> any traffic inbound to the interface that says it's coming from the server itself (obvious spoof attempt). The server uses the localhost loopback device <tt>lo</tt> for internal traffic, so it should never see incoming traffic from its own IP on the experimental network interface. (See test case 11, below)</li>
+	<li><p /><strong>Passively ignore</strong> any traffic inbound to the interface that says it's coming from the server itself (obvious spoof attempt). The server uses the localhost loopback device <tt>lo</tt> for internal traffic, so it should never see incoming traffic from its own IP on the experimental network interface. (See test case 11, below)</li>
 	<li><p />Allow all <em>established</em> traffic on the experimental network interface. Established or related traffic is traffic that is part of <em>previously accepted</em> new connections.</li>
 	<li><p />Accept <strong>new</strong> connections on the experimental network (10.0.x.x) of the types listed below:
 	<ol>
@@ -584,7 +598,7 @@ You can do any of this in reverse to test the connection from a server to a clie
 		<li>Outbound TCP connections to any OpenSSH, SMTP, and Apache (on standard ports). (Test cases 2, 4) </li>
 		<li><p />Outbound UDP connections to the ports 10006 to 10010 on host <strong>client</strong> from the <strong>server</strong>. (Test case 9)</li>
 	</ol></li>
-  <li><p /><strong>passively ignore all other traffic</strong>. (Do not allow it or respond to it in any way.) (Test case 10)</li>
+  <li><p /><strong>Passively ignore all other traffic</strong>. (Do not allow it or respond to it in any way.) (Test case 10)</li>
 </ol>
 
 <p />There are many online resources and tutorials for iptables configuration -- feel free to use them. Be aware, however, <strong>not all tutorials emphasize the principle of least privilege</strong> and may give you overly permissive advice! In order to properly configure the firewall, you must consider the basic ways the firewall can differentiate traffic and allow only the specific types you require to properly function. 
@@ -603,9 +617,9 @@ This section includes important rules and tips for making sure that your answers
 <span class="anchor" id="envvars"></span> 
 <h4>Use Environment Variables in your firewall.sh!</h4>
 
-<p />Your firewall script is only supposed to limit the traffic on the "experimental network" interface, as opposed to including the "control network" of DETER. If you block the control network, you're likely to lose connection to your node, or shut off networked file systems, etc. 
+<p />Your firewall script is only supposed to limit the traffic on the "experimental network" interface, as opposed to including the "control network" of SPHERE. If you block the control network, you're likely to lose connection to your node, or shut off networked file systems, etc. 
 
-<p />Unfortunately, different DETER nodes (the physical computers you are given) bring up their networks on different interfaces (and in general you can't control which nodes you get). This means that on one node, the experimental network might be on eth0, and on another node, it might be on eth4 (or any other ethN). This makes writing your script difficult because it is not 100% portable from one node to another. 
+<p />Unfortunately, different SPHERE nodes (the physical computers you are given) bring up their networks on different interfaces (and in general you can't control which nodes you get). This means that on one node, the experimental network might be on eth0, and on another node, it might be on eth4 (or any other ethN). This makes writing your script difficult because it is not 100% portable from one node to another. 
 
 <p />However, we can use an environment variable to substitute in the right interface. In the firewall.sh script, there is a variable declaration: 
 
@@ -625,7 +639,7 @@ This section includes important rules and tips for making sure that your answers
 
 <p />Testing your firewall is easy; you just need to make sure that the allowed services are allowed, and that things that should be denied are denied. To do that, we'll use a few tools like telnet, netcat, and others. 
 
-<p />You may also have noticed that this experiment swaps in two nodes instead of one. One will be called <tt>client</tt> and the other will be called <tt>server</tt>. <tt>server</tt> is the node with the firewall and resources you want to protect, but you can use client to check to see if the firewall is doing its job. You can also use client as a target to see if the server's outbound rules are functioning properly, using tools such as nmap, telnet, nc, and others in the <a href="#tools">network tools portion of this document</a>. 
+<p />You may also have noticed that this experiment uses two nodes instead of one. One will be called <b>client</b> and the other will be called <b>server</b>. <b>server</b> is the node with the firewall and resources you want to protect, but you can use client to check to see if the firewall is doing its job. You can also use client as a target to see if the server's outbound rules are functioning properly, using tools such as nmap, telnet, nc, and others in the <a href="#tools">network tools portion of this document</a>. 
 
 <p />The following tests have been provided by Dr. Tanya Crenshaw from the University of Portland. While these test cases cannot guarantee a perfect firewall, they should help you understand if your firewall is meeting the guidelines.
 
@@ -633,12 +647,6 @@ This section includes important rules and tips for making sure that your answers
 
 
 
-<div class="warning">
-<p />
-<img src="idea.png" />
-<b>c$</b> indicates tests run from client node and <b>s$</b> indicates tests run from the server node
-<p />
-</div>
 
 <p>
 <table>
@@ -661,7 +669,7 @@ Result
 Allow inbound traffic to the OpenSSH port.
 </td><td>
 <pre>
-c$ telnet server 22
+client$ telnet server 22
 Trying 10.0.1.2...
 Connected to server.
 Escape character is '^]'.
@@ -696,7 +704,7 @@ Allow inbound traffic to http traffic.
 
 </td><td>
 <pre>
-c$ telnet server 80              
+client$ telnet server 80              
 Trying 10.0.1.2...
 Connected to server.
 Escape character is '^]'. 
@@ -717,7 +725,7 @@ Allow outbound http traffic (established).
 
 </td><td>
 <pre>
-c$ nc -q 1 server 80 <<< "GET /"
+client$ nc -q 1 server 80 <<< "GET /"
 </pre>
 
 <p>Any response from the web server, including a "400 Bad Request"</p>
@@ -736,15 +744,16 @@ Allow inbound and outbound mySQL traffic
 
 </td><td>
 <pre>
-c$ [client]$ telnet server 3306            
+client$ telnet server 3306            
 Trying 10.0.1.2...
 Connected to server.         
 Escape character is '^]'.
-K#HY000Host 'client-link0' is not allowed to connect to this MySQL serverConnection closed by foreign host.
+K#HY000Host 'client-link0' is not allowed to connect to this MySQL server
+Connection closed by foreign host.
 
 </pre>
 </td><td>
-SUCCESS: Connect to the MySQL server running on the server node using the telnet tool. Please note that although the firewall allows connections to MySQL (as shown by the phrase "Connected to server"), the MySQL server itself may respond with an error indicating that the host <tt>client</tt> is not allowed to connect to MySQL. You don't need to worry about that.
+SUCCESS: Connect to the MySQL server running on the server node using the telnet tool. Please note that although the firewall allows connections to MySQL (as shown by the phrase "Connected to server"), the MySQL server itself may respond with an error indicating that the host <b>client</b> is not allowed to connect to MySQL. You don't need to worry about that.
 
 
 </td>
@@ -760,7 +769,7 @@ Allow new inbound ping traffic.
 
 </td><td>
 <pre>
-c$ ping server
+client$ ping server
 PING server-link0 (10.0.1.2) 56(84) bytes of data.
 64 bytes from server-link0 (10.0.1.2): icmp_seq=0 ttl=64 time=0.412 ms
 
@@ -783,7 +792,7 @@ Allow new outbound ping traffic.
 
 </td><td>
 <pre>
-s$ ping client
+server$ ping client
 PING client-link0 (10.0.1.1) 56(84) bytes of data.
 64 bytes from client-link0 (10.0.1.1): icmp_seq=0 ttl=64 time=0.302 ms
 
@@ -805,10 +814,10 @@ Allow inbound UDP traffic on ports 10000:10005
 
 </td><td>
 <pre>
-s$ nc -u -l 10000
+server$ nc -u -l 10000
 hello
 
-c$ nc -u server 10000
+client$ nc -u server 10000
   (type ‘hello’)
 
 </pre>
@@ -828,10 +837,10 @@ Allow outbound UDP traffic on ports 10006:10010
 
 </td><td>
 <pre>
-c$ nc -u -l 10006
+client$ nc -u -l 10006
 hello
 
-s$ nc -u client 10006
+server$ nc -u client 10006
   (type ‘hello’)
 
 </pre>
@@ -850,13 +859,13 @@ SUCCESS: Traffic is allowed out of the server on port 10006.  Run the same test 
 </td><td>
 Disallow all other traffic
 </td><td>
-<p>We need to test other ports to make sure that all other network traffic is blocked. However, most ports do not have any services listening on them. Fortunately, we can open ports manually using the <tt>nc</tt> tool. To open a port on <tt>server</tt>, execute:</p>
+<p>We need to test other ports to make sure that all other network traffic is blocked. However, most ports do not have any services listening on them. Fortunately, we can open ports manually using the <tt>nc</tt> tool. To open a port on <b>server</b>, execute:</p>
 
-<p><pre>s$ nc -l PORTNUM</pre><p>
+<p><pre>server$ nc -l PORTNUM</pre><p>
 
-<p>Then, on <tt>client</tt>, use <tt>telnet</tt> to attempt to connect to the open port:</p>
+<p>Then, on <b>client</b>, use <tt>telnet</tt> to attempt to connect to the open port:</p>
 
-<p><pre>c$ telnet server PORTNUM</pre></p>
+<p><pre>client$ telnet server PORTNUM</pre></p>
 
 <p>If traffic is being dropped, <tt>telnet</tt> should hang; if it is hung, try pressing ^C to quit. If traffic is being rejected, you will get a "connection refused" message.</p><br />
 
@@ -901,7 +910,7 @@ NA
 
 <h4>1. Your firewall cuts off your access to the node.</h4>
 
-<p>If you have misconfigured your firewall, and it "locks you out," you can try to reboot your experimental nodes using the DETER interface. If that does not work, you will need to swap your nodes out and back in again, but beware that swapping your nodes out will destroy any work you have not backed up in your home directory.
+<p>If you have misconfigured your firewall, and it "locks you out," you can try to reboot your experimental nodes using the SPHERE control interface. If that does not work, you will need to run stopexp and then startexp again, but beware that doing so will destroy any work you have not backed up in your home directory on your XDC.
 
 <p>Make sure you are using the environment variable to define the interface you are restricting -- this will help keep you from getting "locked out." See the <a href="#tips">tips and tricks</a> section for more information.
 

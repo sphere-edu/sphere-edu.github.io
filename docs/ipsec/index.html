@@ -80,19 +80,24 @@ We will use <tt>strongswan</tt> to implement IPSec. You should refer to <a href=
 
 <span class="anchor" id="tasks"></span>
 <div class="level3">
-<h3>Tasks</h3>    
+  <h3>Tasks</h3>
+    <div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+
     
 <span class="anchor" id="traffic"></span>
 <div class="level3">
   <h4>Intercepting Traffic</h4>
   <p>Our objective is to establish an IPSec tunnel between <tt>sun</tt> and <tt>moon</tt>. Before we do so we will establish what happens in absence of IPSec.
     
-  <p>In this exercise <tt>bob</tt> runs anonymous FTP server and <tt>alice</tt> wants to access it. On <tt>router</tt> node, identify the interface with IP address 3.5.7.17 using <tt>ifconfig</tt>, e.g., ethX. Then run:
+  <p>In this exercise <tt>bob</tt> runs anonymous FTP server and <tt>alice</tt> wants to access it. On <b>router</b> node, identify the interface with IP address 3.5.7.17 using <tt>ifconfig</tt>, e.g., ethX. Then run:
     <pre>
       sudo tcpdump -i ethX -nn -s 0 -X
     </pre>
 
-    On <tt>alice</tt> type:
+    On <b>alice</b> type:
     <pre>
       ftp bob
       ...enter "anonymous" as username
@@ -101,7 +106,7 @@ We will use <tt>strongswan</tt> to implement IPSec. You should refer to <a href=
       bye
       cat README
     </pre>
-   <p>Now check the output of the <tt>tcpdump</tt> command on <tt>router</tt>. Did the router learn the contents of the README file?
+   <p>Now check the output of the <tt>tcpdump</tt> command on <b>router</b>. Did the router learn the contents of the README file?
    </div>
 <span class="anchor" id="tunnel"></span>
 <div class="level3">
@@ -110,7 +115,18 @@ We will use <tt>strongswan</tt> to implement IPSec. You should refer to <a href=
 
 <p>Before you can fully complete the setup, you will need to generate and store some private and public keys and certificates. Follow the instructions at <a href="https://docs.strongswan.org/docs/5.9/pki/pkiQuickstart.html">PKI quickstart</a> to set up those. Make sure that you use the same strongswan private key on both <tt>sun</tt> and <tt>moon</tt> in the process.
   
-After you complete the setup run the <tt>tcpdump</tt> again on <tt>router</tt> and issue the same commands on <tt>alice</tt> as before. Can the router see the traffic now?
+  After you complete the setup run the <tt>tcpdump</tt> again on <b>router</b> and issue the same commands on <b>alice</b> as before. Can the router see the traffic now?
+
+  <div class="ai">
+    <b>AI-option:</b> If you use AI to <b>create keys and IPSec tunnel</b>, you must provide <i>hand-written</i> list of all the commands the AI has run, along with the explanation of what the command does and what each parameter and flag in the command that was ran mean. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
+	    </ol>
+</div>
+
+  
 </div>
 <span class="anchor" id="submission"></span> 
 <h2>Submission Instructions</h2>

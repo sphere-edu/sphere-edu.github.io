@@ -514,7 +514,20 @@ The majority of this exercise is easiest to complete simply via command line on 
 
 <span class="anchor" id="tasks"></span>
 <div class="level3">
-<h3>Tasks</h3>
+  <h3>Tasks</h3>
+  <div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+<div class="ai">
+    <b>AI-option:</b> If you use AI to <b>run the commands or you prompt it with questions in this exercise</b>, you must provide <i>hand-written</i> answers to ALL the questions noted in the rest of this exercise. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
+	    </ol>
+</div>
+
 
 <span class="anchor" id="p1"></span>
 <h4>Part 1: Understanding DNS </h4>
@@ -534,6 +547,7 @@ google.com?
 google.com nameserver.    For each such server  
 what is its IPv4 address?
 </li></ol>
+
 
 <div class="infobox"> 
 <p> 
@@ -558,7 +572,7 @@ Before doing any ARP spoofing, we want to understand the network topology.
 Use the topology visualization in this document and use <tt>arp</tt> and <tt>ifconfig</tt> commands to detect MAC and IP addresses for each machine.
 
 </p><p>
-</p><ol>
+</p><ol start="7">
 <li>State the source MAC and IP addresses as well as destination MAC and
  IP addresses for a packet going from the client to the cache</li>
 <li>Does the packet travel through the attacker box?</li>
@@ -582,11 +596,11 @@ server</li>
 </p></div> 
 
 <p>
-Login to the <tt>attacker</tt> machine.   Using ettercap your 
+Login to the <b>attacker</b> machine.   Using ettercap your 
 objective is to poison <b>cache</b> and <b>auth</b> so that <b>attacker</b> is in their middle. Once you accomplish this record the
 following:
  
-</p><ol>
+</p><ol start="11">
 <li>The command you used</li>
 <li>What each option in the command means</li>
 <li>State the source MAC and IP addresses as well as destination MAC and
@@ -607,16 +621,16 @@ filter DNS messages returning to the end-user and replace the IP for
       DNS spoofing can no longer fool modern DNS resolver software.
 
 <p>Steps on <b>attacker</b> node:</p>
-<ol> 
+<ul> 
   <li>Run <tt>docker pull bettercap/bettercap</tt>
   <li>Discover the interface for 10.1.2.4 address using <tt>ifconfig</tt>, say ethX
   <li>Run <tt>docker run -it --privileged --net=host bettercap/bettercap -iface ethX</tt>. This will open bettercap's UI.
   <li>Set dns.spoof module to spoof *.google.com and activate it. You can find out how to do that by reading bettercap's documentation <a href="https://www.bettercap.org/modules/ethernet/spoofers/dnsspoof/">here</a>. <b>Wait at least five minutes</b>
-</ol>
+</ul>
 
 
 <p>On <b>client</b> node:
-  <ol start="5">
+  <ol start="16">
 	<li>Run <tt>dig www.google.com A</tt> and record the output
 	<li>Record bettercap's commands you have used
 	<li>What malicious things could an attacker do by changing the IP address in a DNS response going to the client?
@@ -632,15 +646,15 @@ filter DNS messages returning to the end-user and replace the IP for
 <p>
   The final task to prevent this type of attack by cryptographically signing the DNS data.   Login to <tt>auth</tt> and follow instructions <a href="https://www.digitalocean.com/community/tutorials/how-to-setup-dnssec-on-an-authoritative-bind-dns-server-2">here</a> to set up DNSSEC. <b>IMPORTANT: Your zone file is already present at /etc/bind/zones/db.google.com. This is the file you should sign.</b>
 
-  Then restart <tt>bind</tt> and try on the <tt>auth</tt> machine: <tt>dig +dnssec  www.google.com A</tt>. You should get a signed response.
+  Then restart <tt>bind</tt> and try on the <b>auth</b> machine: <tt>dig +dnssec  www.google.com A</tt>. You should get a signed response.
 
-<P>On the <tt>cache</tt> machine, add the public zone signing key (ZSK) to the list of trust-anchors for the cache. An example how to do this is <A HREF="https://benctechnicalblog.blogspot.com/2011/01/dnssec-configuring-my-resolver.html">here</A> You can use <tt>dig google.com dnskey</tt> on <tt>auth</tt> to learn what keys to add to the list. You must also add lines to <tt>/etc/bind/named.conf.options</tt>  that tell it to use dnssec (same ones as in the previous step). Then restart <tt>bind</tt> on <tt>cache</tt> and run <tt>dig +dnssec  www.google.com A</tt>. You should get a signed response.
+<P>On the <b>cache</b> machine, add the public zone signing key (ZSK) to the list of trust-anchors for the cache. An example how to do this is <A HREF="https://benctechnicalblog.blogspot.com/2011/01/dnssec-configuring-my-resolver.html">here</A> You can use <tt>dig google.com dnskey</tt> on <tt>auth</tt> to learn what keys to add to the list. You must also add lines to <tt>/etc/bind/named.conf.options</tt>  that tell it to use dnssec (same ones as in the previous step). Then restart <tt>bind</tt> on <b>cache</b> and run <tt>dig +dnssec  www.google.com A</tt>. You should get a signed response.
 
 <P>Finally, return to the <tt>client</tt> machine and use the command "<tt>dig +dnssec  www.google.com A</tt>" to lookup the IPv4 address for <tt>www.google.com</tt>. You should get a signed response, with AD bit set.
 
 <P>For part 5,  turn in:
-<ol>
-<li>The signed response obtained on the <tt>client</tt> machine
+ <ol start="19">
+<li>The signed response obtained on the <b>client</b> machine
 <li>Detailed description of all the steps you took to implement DNSSEC. Make sure to list all commands you typed and all configuration changes you made.
 </ol>
 <div class="infobox"> 
@@ -680,10 +694,10 @@ the correct interface. You should be poisoning the 10.x.x.x interface.</li>
 Submit a .pdf file to your instructor containing your answers to:
 <ol>
 <li>Part 1 Questions 1-6</li>
-<li>Part 2 Questions 1-4</li>
-<li>Part 3 Questions 1-5</li>
-<li>Part 4 Questions 5-7</li>
-<li>Part 5 Questions 1-2</li>
+<li>Part 2 Questions 7-10</li>
+<li>Part 3 Questions 11-15</li>
+<li>Part 4 Questions 16-18</li>
+<li>Part 5 Questions 19-20</li>
 </ol>
 
 </div>
