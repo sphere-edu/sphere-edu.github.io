@@ -1,0 +1,346 @@
+/* Styles for the catalog page (index.html) only.
+   The exercise pages under docs/ keep using common.css and screen.css. */
+
+:root {
+  --bg: #ffffff;
+  --surface: #f3f5f6;
+  --ink: #17212b;
+  --muted: #55626e;
+  --line: #dde2e6;
+  --link: #124a86;
+  --band: #14202c;
+  --band-ink: #f2f5f7;
+  --band-muted: #bcc7d1;
+  --band-link: #9fd0ff;
+  --chip-bg: #eceff1;
+  --chip-ink: #36434f;
+  --attack-bg: #fbe9e7;
+  --attack-ink: #9d2318;
+  --attack-solid: #b3291c;
+  --defense-bg: #e6effb;
+  --defense-ink: #174f96;
+  --defense-solid: #1d5cab;
+  --selected-bg: #17212b;
+  --selected-ink: #ffffff;
+  --focus: #1d6fd1;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11181f;
+    --surface: #1a232c;
+    --ink: #e8edf1;
+    --muted: #a0adb8;
+    --line: #2b3640;
+    --link: #8cc4ff;
+    --band: #0b1117;
+    --chip-bg: #232e38;
+    --chip-ink: #c7d1da;
+    --attack-bg: #3c1f1c;
+    --attack-ink: #ffb4aa;
+    --attack-solid: #e0695b;
+    --defense-bg: #1b2d44;
+    --defense-ink: #a9cdfa;
+    --defense-solid: #5b9be6;
+    --selected-bg: #e8edf1;
+    --selected-ink: #11181f;
+    --focus: #8cc4ff;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.5 var(--sans);
+}
+
+a { color: var(--link); }
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.wrap {
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+@media (min-width: 640px) {
+  .wrap { padding: 0 2rem; }
+}
+
+/* Masthead */
+
+.masthead {
+  background: var(--band);
+  color: var(--band-ink);
+  padding: 2.5rem 0 2.25rem;
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.masthead p {
+  max-width: 44rem;
+  margin: 0.85rem 0 0;
+  color: var(--band-muted);
+  font-size: 1.0625rem;
+}
+
+.masthead a { color: var(--band-link); }
+.masthead :focus-visible { outline-color: var(--band-link); }
+
+/* Page layout */
+
+.layout {
+  display: grid;
+  gap: 1.25rem;
+  padding-top: 1.25rem;
+  padding-bottom: 4rem;
+}
+
+main { min-width: 0; }
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: 17rem minmax(0, 1fr);
+    gap: 3rem;
+    padding-top: 2rem;
+  }
+  .filters {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: 2px; /* keeps focus rings from being clipped */
+  }
+  .filters summary { display: none; }
+}
+
+@media (max-width: 899.98px) {
+  .filters-title { display: none; }
+}
+
+/* Tag filters */
+
+.filters summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5rem 0;
+}
+
+.filters-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding-top: 0.25rem;
+}
+
+.tag-divider {
+  flex-basis: 100%;
+  height: 1px;
+  margin: 0.375rem 0;
+  background: var(--line);
+}
+
+/* Tags, shared by the filter panel and the exercise rows */
+
+.tag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.5625rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--chip-bg);
+  color: var(--chip-ink);
+  font: 0.8125rem/1.25rem var(--mono);
+  cursor: pointer;
+}
+
+.tag:hover { box-shadow: inset 0 0 0 1px currentColor; }
+
+.tag .count { opacity: 0.72; font-size: 0.75rem; }
+
+.tag[data-tag="attack"] { background: var(--attack-bg); color: var(--attack-ink); }
+.tag[data-tag="defense"] { background: var(--defense-bg); color: var(--defense-ink); }
+
+.tag[aria-pressed="true"] { background: var(--selected-bg); color: var(--selected-ink); }
+.tag[data-tag="attack"][aria-pressed="true"] { background: var(--attack-solid); color: var(--bg); }
+.tag[data-tag="defense"][aria-pressed="true"] { background: var(--defense-solid); color: var(--bg); }
+
+.tag:disabled {
+  opacity: 0.42;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* Search toolbar */
+
+.toolbar {
+  background: var(--bg);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+@media (min-width: 900px) {
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-top: 1rem;
+    margin-top: -1rem;
+  }
+}
+
+#search {
+  display: block;
+  width: 100%;
+  height: 2.875rem;
+  padding: 0 0.875rem;
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.0625rem; /* at least 16px so iOS does not zoom on focus */
+}
+
+#search::placeholder { color: var(--muted); opacity: 1; }
+
+.hint {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.hint kbd, .hint code { font: 0.8125rem var(--mono); color: var(--ink); }
+
+.active-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
+
+.active-tags .remove { font-family: var(--sans); }
+
+.result-count {
+  margin: 0.625rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.text-button {
+  padding: 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Exercise list */
+
+.catalog {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog > li {
+  padding: 1.125rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.catalog a {
+  display: block;
+  text-decoration: none;
+}
+
+.catalog a .name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.catalog a:hover .name { text-decoration: underline; }
+
+.topic {
+  display: block;
+  margin-bottom: 0.125rem;
+  color: var(--muted);
+  font: 0.8125rem/1.4 var(--mono);
+}
+
+.catalog p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  max-width: 44rem;
+}
+
+.catalog .tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0.625rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .catalog > li {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    column-gap: 1.25rem;
+  }
+  /* The link's two spans sit in the row's two columns, so the whole link keeps one target. */
+  .catalog a { display: contents; }
+  .topic { grid-column: 1; grid-row: 1; margin: 0; padding-top: 0.25rem; }
+  .catalog a .name { grid-column: 2; grid-row: 1; color: var(--link); }
+  .catalog p, .catalog .tag-list { grid-column: 2; }
+}
+
+.empty {
+  padding: 3rem 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty p { margin: 0 0 0.5rem; }
