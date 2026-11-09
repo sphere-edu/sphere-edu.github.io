@@ -1,29 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>DDoS: Slowloris Attack</title>
+  <link rel="stylesheet" href="../../css/exercise.css">
+  <script src="../../js/exercise.js" defer></script>
+</head>
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta name="robots" content="index,nofollow">
-
-    <title>DDoS: Slowloris Attack</title>
-
-    <link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="../../css//common.css">
-    <link rel="stylesheet" type="text/css" charset="utf-8" media="screen" href="../../css//screen.css">
-  </head>
-
-  <body dir="ltr" lang="en">
-    <div id="page" dir="ltr" lang="en">
-
-      <!-- Topic -->
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <a class="back" href="../../index.html">&larr; SPHERE Shared Education Materials</a>
+      <p class="eyebrow">DDoS</p>
       <h1>Analyzing resources consumed in a Slowloris Attack</h1>
-      <div class="author">Created by: Rajat Tandon, USC-ISI (tandon at isi.edu), Dr. Christophe Hauser, USC-ISI (hauser at isi.edu), and
-        Dr. Jelena Mirkovic, USC-ISI (mirkovic at isi.edu)<br>
-      </div>
+      <p class="author">Created by: Rajat Tandon, USC-ISI (tandon at isi.edu), Dr. Christophe Hauser, USC-ISI (hauser at isi.edu), and Dr. Jelena Mirkovic, USC-ISI (mirkovic at isi.edu)</p>
+    </div>
+  </header>
 
-      <!-- Table of contents -->
-      <div class="table-of-contents">
-        <div class="table-of-contents-heading">Contents</div>
-        <ol type="1">
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <nav aria-label="Contents">
+        <h2 class="toc-title">Contents</h2>
+        <ol>
           <li><a href="#overview">Overview</a></li>
           <li><a href="#reading">Required Reading</a>
             <ol>
@@ -34,140 +36,112 @@
           <li><a href="#assignment">Assignment Instructions</a>
             <ol>
               <li><a href="#setup">Setup</a></li>
-	      <li><a href="#tasks">Tasks</a>
-		<ol>
-              <li><a href="#server">Server installation and measurement</a>
-	      <li><a href="#ltraffic">Legitimate traffic</a>
-	      <li><a href="#atraffic">Scenario</a>
-		</ol>
-	    </ol>
-	    
+              <li><a href="#tasks">Tasks</a>
+                <ol>
+                  <li><a href="#server">Server installation and measurement</a></li>
+                  <li><a href="#ltraffic">Legitimate traffic</a></li>
+                  <li><a href="#atraffic">Scenario</a></li>
+                </ol>
+              </li>
+            </ol>
+          </li>
           <li><a href="#submission">Submission Instructions</a></li>
         </ol>
-      </div>
+      </nav>
+    </details>
 
+    <article>
+      <!-- Topic -->
+      <!-- Table of contents -->
       <!-- Overview -->
-      <span class="anchor" id="overview"></span> 
-      <h2>Overview</h2>
-      <p>
-      This exercise will demonstrate Slowloris attack and  analyze the resources it consumes.
-      </p>
+      <h2 id="overview">Overview</h2>
+      <p>This exercise will demonstrate Slowloris attack and analyze the resources it consumes.</p>
       <!--  Required Reading -->
-      <br>
-      <span class="anchor" id="reading"></span> 
-      <h2>Required Reading</h2>
-
+      <h2 id="reading">Required Reading</h2>
       <!--  #read-intro -->
-      <span class="anchor" id="read-intro"></span> 
-      <h3>Introduction</h3>
-      <p>
-      A Slowloris attack is an application-layer attack, which operates by utilizing partial HTTP requests. The attack functions by opening connections to a targeted Web server and then keeping those connections open as long as it can.
-      </p><p><img src="Slowloris.png" width="750">
-      </p>
-      <p>
-      Slowloris keeps connections open by continuously sending partial Web requests. Since the request is never completed the server cannot process it and close the connection. Affected servers will keep these connections open, filling their maximum concurrent connection pool, eventually denying additional connection attempts from legitimate clients.
-      </p>
-
+      <h3 id="read-intro">Introduction</h3>
+      <p>A Slowloris attack is an application-layer attack, which operates by utilizing partial HTTP requests. The attack functions by opening connections to a targeted Web server and then keeping those connections open as long as it can.</p>
+      <figure><img src="Slowloris.png" width="750"></figure>
+      <p>Slowloris keeps connections open by continuously sending partial Web requests. Since the request is never completed the server cannot process it and close the connection. Affected servers will keep these connections open, filling their maximum concurrent connection pool, eventually denying additional connection attempts from legitimate clients.</p>
       <!--  #read-intro -->
-      <span class="anchor" id="read-x86"></span> 
-      <h3>Attack Tool</h3>
-      <p>
-      You can find the Slowloris attack tool on the <tt>attacker</tt> node in <tt>/tmp/attacker/slowloris</tt> folder. The tool was cloned from <a href="https://github.com/gkbrk/slowloris">https://github.com/gkbrk/slowloris</a>.
-      </p>
-
-
+      <h3 id="read-x86">Attack Tool</h3>
+      <p>You can find the Slowloris attack tool on the <code>attacker</code> node in <code>/tmp/attacker/slowloris</code> folder. The tool was cloned from <a href="https://github.com/gkbrk/slowloris">https://github.com/gkbrk/slowloris</a>.</p>
       <!--  Assignment Instructions -->
-      <br>
-      <span class="anchor" id="assignment"></span> 
-      <h2>Assignment Instructions</h2>
-
-<h3 class="anchor" id="setup">Setup</h3>
-<ol>
-	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
-</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>slowloris</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
-</li><li>After setting up the lab, access your nodes. <p /></ol></ol><p />
-
-<span class="anchor" id="tasks"></span>
-<div class="level3">
-<h3>Tasks</h3>
-<span class="anchor" id="server"></span>
-   </a><h4>Server installation and measurement</h4>
-On the <tt>server</tt> node, install apache2 and tune tcp parameters. You can use the following commands:
-      <pre>
-sudo apt-get update
-sudo apt-get install apache2
-sudo sysctl -w net.ipv4.tcp_syn_retries=1
-sudo sysctl -w net.ipv4.tcp_max_syn_backlog=10000
-      </pre>
-
-      <span class="anchor" id="ltraffic"></span>
-      <h4>Legitimate traffic</h4>
-Write a simple script to generate legitimate traffic from the <tt>client</tt> node. You can generate 50 legitimate requests per second by giving a sleep of 0.02 seconds.
-To prevent legitimate requests from flooding the server, you can timeout requests after 10 seconds if a legitimate connection can't be established with the server in 10 seconds. You can use <a href="https://linuxize.com/post/wget-command-examples/">wget</a> or <a href="https://curl.se/docs/manpage.html">curl</a> in your script. Example usage:
-
-<pre>
-wget server --connect-timeout=10
+      <h2 id="assignment">Assignment Instructions</h2>
+      <h3 id="setup">Setup</h3>
+      <ol type="1">
+        <li>If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.</li>
+        <li>
+          <p>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <code>slowloris</code> as Lab name. Your topology will look like below:</p>
+          <p><img src="topo.png">.</p>
+        </li>
+        <li>After setting up the lab, access your nodes.</li>
+      </ol>
+      <h3 id="tasks">Tasks</h3>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p>Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.</p>
+      </aside>
+      <h4 id="server">Server installation and measurement</h4>
+      <p>On the <code>server</code> node, install apache2 and tune tcp parameters. You can use the following commands:</p>
+      <div class="code command">
+        <pre><code><span class="line">sudo apt-get update</span><span class="line">sudo apt-get install apache2</span><span class="line">sudo sysctl -w net.ipv4.tcp_syn_retries=1</span><span class="line">sudo sysctl -w net.ipv4.tcp_max_syn_backlog=10000</span></code></pre>
+      </div>
+      <h4 id="ltraffic">Legitimate traffic</h4>
+      <p>Write a simple script to generate legitimate traffic from the <code>client</code> node. You can generate 50 legitimate requests per second by giving a sleep of 0.02 seconds. To prevent legitimate requests from flooding the server, you can timeout requests after 10 seconds if a legitimate connection can't be established with the server in 10 seconds. You can use <a href="https://linuxize.com/post/wget-command-examples/">wget</a> or <a href="https://curl.se/docs/manpage.html">curl</a> in your script. Example usage:</p>
+      <div class="code">
+        <pre><code>wget server --connect-timeout=10
 or
-curl server --connect-timeout=10
-</pre>
-<p>
-
-Next, start collecting <a href="https://www.tcpdump.org/manpages/tcpdump.1.html">tcpdump</a> on the server node.
-tcpdump is the most powerful and widely used command-line packets sniffer or packet analyzer tool, which is used to capture TCP/IP packets that are received or transferred over a network on a specific interface. We capture packets in this exercise, so that we can measure the time taken by each connection.
-
-<div class="warning">Make sure to run tcpdump on the experimental interface. Run <tt>ifconfig</tt> and use the interface whose IP address is NOT in 172.30.*.* range.
+curl server --connect-timeout=10</code></pre>
+      </div>
+      <p>Next, start collecting <a href="https://www.tcpdump.org/manpages/tcpdump.1.html">tcpdump</a> on the server node. tcpdump is the most powerful and widely used command-line packets sniffer or packet analyzer tool, which is used to capture TCP/IP packets that are received or transferred over a network on a specific interface. We capture packets in this exercise, so that we can measure the time taken by each connection.</p>
+      <aside class="note warning">
+        <p>Make sure to run tcpdump on the experimental interface. Run <code>ifconfig</code> and use the interface whose IP address is NOT in 172.30.*.* range.</p>
+      </aside>
+      <p>For a closer look into resource consumption, write a script to probe the output of <a href="https://docs.oracle.com/cd/E19504-01/802-5753/6i9g71m3i/index.html"> netstat</a> command every second. This will help you measure the number of open sockets, connections and their current states.</p>
+      <h4 id="atraffic">Scenario</h4>
+      <ol>
+        <li>Start measuring with tcpdump and netstat</li>
+        <li>Start the legitimate client script</li>
+        <li>Wait about 60 seconds</li>
+        <li>
+          <p>On <code>attacker</code> node, start the attack by running the commands:</p>
+          <div class="code">
+            <pre><code>cd /tmp/attacker/slowloris
+python3 slowloris.py server -s 3500 --sleeptime 0</code></pre>
+          </div>
+        </li>
+        <li>Let the attack run for 2 minutes</li>
+        <li>Stop both the legitimate and attack traffic. Stop collecting tcpdump on the server. Kill the netstat script on the server.</li>
+      </ol>
+      <p><a id="#stats"></a></p>
+      <h4>Calculating statistics</h4>
+      <p>Using the output of tcpdump, calculate connection durations for all successful connections.</p>
+      <p>The connection duration of a successful connection is the time elapsed between the server receiving the first SYN packet and the last FIN on the connection. Measure the durations for all legitimate connections and attack connections separately.</p>
+      <p>Also, measure the number of unsuccessful connections per second -- these connections just have repeating SYN packets. Plot the number of successful attack and legitimate connections, and the number of unsuccessful attack and legitime connections per second in a graph.</p>
+      <p>Use the output of the netstat script to find the number of sockets per second that are in SYN_RECV state. SYN_RECV denotes that a connection request has been received from the network but the connection has not yet progressed to ESTABLISHED state.</p>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p><b>AI-option:</b> If you use AI to <b>run the commands or write legitimate traffic, netstat and/or parsing scripts</b> for you, you must provide <i>hand-written</i> answers to the following questions: (1) what is the logic of the output processing code - describe the pseudocode or the information flow, (2) describe what happens at each line of the legitimate traffic generation - just specify one line of explanation akin to comments in the code. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:</p>
+        <ol type="a">
+          <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?</li>
+          <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers</li>
+          <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <code>prompts.txt</code> in the "AI" folder.</li>
+        </ol>
+      </aside>
+      <h2 id="submission">Submission Instructions</h2>
+      <p>Submit a Word document with the following items (label each section):</p>
+      <ol>
+        <li>Explain how the Slowloris attack works.</li>
+        <li>Discuss what could be a defense for the Slowloris Attack?</li>
+        <li>Include your legitimate client script.</li>
+        <li>Specify the tcpdump command that you used for capturing the packets.</li>
+        <li>Include the netstat script that you wrote.</li>
+        <li>Using your statistics, draw a graph showing the number of successful and unsuccessful legitimate and attack connections. What can you infer from this graph?</li>
+        <li>Specify average legitimate connection duration for successful attack and legitimate connections.</li>
+        <li>What is the average number of sockets per second, associated with legitimate traffic, that remains in SYN_RECV state: (a) before the attack, and (b) during the attack?</li>
+      </ol>
+    </article>
   </div>
-
-
-<p>
-For a closer look into resource consumption,  write a script to probe the output of <a href="https://docs.oracle.com/cd/E19504-01/802-5753/6i9g71m3i/index.html"> netstat</a> command every second. This will help you measure the number of open sockets, connections and their current states.
-</p><p>
-
-  <span class="anchor" id="atraffic"></span>
-<h4>Scenario</h4>
-<ol>
-  <li>Start measuring with tcpdump and netstat
-  <li>Start the legitimate client script
-  <li>Wait about 60 seconds
-  <li>On <tt>attacker</tt> node, start the attack by running the commands:
-      <pre>
-cd /tmp/attacker/slowloris
-python3 slowloris.py server -s 3500 --sleeptime 0
-      </pre>
-</p>
-      <li> Let the attack run for 2 minutes
-      <li> Stop  both the legitimate and attack traffic. Stop collecting tcpdump on the server. Kill the netstat script on the server.
-</ol>
-<a name="#stats"></a><h4>Calculating statistics</h4>
-	
-Using the output of tcpdump, calculate connection durations for all successful connections. 
-</p><p>
-The connection duration of a successful connection is the time elapsed between the server receiving the first SYN packet and the last FIN on the connection.  Measure the durations for all legitimate connections and attack connections separately.
-</p><p>
-Also, measure the number of unsuccessful connections per second -- these connections just have repeating SYN packets. Plot the number of successful attack and legitimate connections, and the number of unsuccessful attack and legitime connections per second in a graph.
-</p><p>
-Use the output of the netstat script to find the number of sockets per second that are in SYN_RECV state. 
-SYN_RECV denotes that a connection request has been received from the network but the connection has not yet progressed to ESTABLISHED state.
-</p><p>
-
-
-<span class="anchor" id="submission"></span>
-<h2>Submission Instructions</h2>
-
-Submit a Word document with the following items (label each section):
-<ol>
-<li>Explain how the Slowloris attack works.
-<li>Discuss what could be a defense for the Slowloris Attack?
-<li>Include your legitimate client script.
-<li>Specify the tcpdump command that you used for capturing the packets.
-<li>Include the netstat script that you wrote.
-<li>Using your statistics, draw a graph showing the number of successful and unsuccessful legitimate and attack connections. What can you infer from this graph?
- <li>Specify average legitimate connection duration for successful attack and  legitimate connections.
-<li>What is the average number of sockets per second, associated with legitimate traffic, that remains in SYN_RECV state: (a) before the attack, and (b) during the attack?
-</ol>
-
-
-    </div>
-  </body>
-
+</body>
 </html>

@@ -1,181 +1,114 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>Exploits: Buffer Overflows</title>
+  <link rel="stylesheet" href="../../css/exercise.css">
+  <script src="../../js/exercise.js" defer></script>
+</head>
 
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <a class="back" href="../../index.html">&larr; SPHERE Shared Education Materials</a>
+      <p class="eyebrow">Exploits</p>
+      <h1>Buffer Overflows</h1>
+      <p class="author">Created by: Peter A. H. Peterson and Dr. Peter Reiher, UCLA {pahp, reiher}@ucla.edu</p>
+    </div>
+  </header>
 
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta name="robots" content="index,nofollow">
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <nav aria-label="Contents">
+        <h2 class="toc-title">Contents</h2>
+        <ol>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#reading">Required Reading</a>
+            <ol>
+              <li><a href="#bdesc">Buffer Overflows</a></li>
+              <li><a href="#tools">Software Tools</a>
+                <ol>
+                  <li><a href="#running">Running fhttpd</a></li>
+                  <li><a href="#telnet">telnet</a></li>
+                  <li><a href="#rfc">The HTTP Protocol</a></li>
+                  <li><a href="#wget">wget</a></li>
+                  <li><a href="#netcat">netcat or nc</a></li>
+                  <li><a href="#crlf">Line endings</a></li>
+                  <li><a href="#diffpatch">diff and patch</a></li>
+                </ol>
+              </li>
+            </ol>
+          </li>
+          <li><a href="#intro">Introduction</a></li>
+          <li><a href="#assignment">Assignment Instructions</a>
+            <ol>
+              <li><a href="#setup">Setup</a></li>
+              <li><a href="#tasks">Tasks</a>
+                <ol>
+                  <li><a href="#bstory">Buffer Overflow Scenario</a></li>
+                  <li><a href="#bassign">Buffer Overflow Tasks</a></li>
+                </ol>
+              </li>
+              <li><a href="#glitches">What Can Go Wrong</a></li>
+            </ol>
+          </li>
+          <li><a href="#extra">Extra Credit</a></li>
+          <li><a href="#submission">Submission Instructions</a></li>
+        </ol>
+      </nav>
+    </details>
 
-<title>Exploits: Buffer Overflows</title>
-
-<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
-href="../../css/common.css">
-<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
-href="../../css/screen.css">
-</head><body dir="ltr" lang="en">
-
-<div id="page" dir="ltr" lang="en">
-<h1>Exploits: Buffer Overflows</h1>
-<div class="author">Created by: Peter A. H. Peterson and Dr. Peter Reiher, UCLA {pahp, reiher}@ucla.edu<br>
-</div>
-
-<!--
+    <article>
+      <!--
 <div class="due-date">Put your due date here if you are including the exercise in your class.</div>
 -->
-
-<div class="table-of-contents">
-<div class="table-of-contents-heading">Contents</div>
-<ol type="1">
-<li><a href="#overview">Overview</a>
-<li><a href="#reading">Required Reading</a>
-<ol>
-	<li><a href="#bdesc">Buffer Overflows</a>
-	<li><a href="#tools">Software Tools</a>
-	<ol>
-		<li><a href="#running">Running fhttpd</a>
-		<li><a href="#telnet">telnet</a>
-		<li><a href="#rfc">The HTTP Protocol</a>
-		<li><a href="#wget">wget</a>
-		<li><a href="#netcat">netcat or nc</a>
-		<li><a href="#crlf">Line endings</a>
-		<li><a href="#diffpatch">diff and patch</a>
-	</ol>
-</ol>
-<li><a href="#intro">Introduction</a>
-<li><a href="#assignment">Assignment Instructions</a>
-<ol>
-<li><a href="#setup">Setup</a>
-<li><a href="#tasks">Tasks</a>
-<ol>
-	<li><a href="#bstory">Buffer Overflow Scenario</a>
-	<li><a href="#bassign">Buffer Overflow Tasks</a>
-</ol>
-
-<li><a href="#glitches">What Can Go Wrong</a>
-</ol>
-<li><a href="#extra">Extra Credit</a>
-
-<li><a href="#submission">Submission Instructions</a>
-
-</ol>
-</div>
-
-<span class="anchor" id="overview"></span> 
-<h2>Overview</h2>
-<p />
-
-<p />The purpose of this exercise is to introduce you to the concept of buffer overflow and give you a first-hand opportunity to see them in source code, exploit them, and patch them. After successfully completing this exercise, you will be able to: 
-
-<ol type="1">
-<li><p />Accurately identify and describe buffer overflows
-<li><p />Identify buffer overflows in preexisting code, including an example webserver in C
-<li><p />Understand how vulnerabilities lead to: 
-	<ol type="1"><li><p />Crashes</li>
-	<li><p />Remote execution exploits</li>
-	<li><p />Unauthorized access to private data</li>
-	</ol></li>
-<li><p />Repair simple examples of buffer overflows in the aforementioned code</li>
-<li><p />Author memos describing in detail your findings and code changes</li> 
-</ol>
-
-You should be familiar with the Unix command line, POSIX permissions, and basic programming. The exercise will also use C and HTTP, but at introductory levels.
-
-<span class="anchor" id="reading"></span> 
-<h2>Required Reading</h2>
-
-<p /><span class="anchor" id="bdesc"></span> 
-<h3>Buffer Overflows</h3>
-
-<p />Buffer overflows are a unique kind of occurrence enabled by poor programming in certain languages (for example C, C++, and assembly code) that allow the use of fixed memory buffers for storing data and do not include automatic bounds checking. A buffer is a bounded region of memory into which data can be stored. Buffer overflows result when a buffer is assigned more data than it can hold. The buffer "overflows" into the next available memory space, overwriting the data. Strictly speaking, this is not necessarily an error. However, it has historically been the cause of many bugs and security flaws because so much commonly used code is written in these languages, including compilers, interpreters, and operating systems. 
-
-
-
-<p />Buffers are different from traditional variables in strongly-typed languages because each genuine type is of a fixed, predetermined size. For example, on most computers an 'int' in C is a 32-bit signed integer. By using the keyword 'int', the programmer has declared to the compiler that this variable and associated memory will never need to exceed 32 bits of storage space, and in fact the compiler ensures that this is not possible. (This is why partly why integers "wrap" when they "overflow" -- the other part is two's complement arithmetic, but that's a lecture for a different class.) 
-
-
-
-<p />Unfortunately, sometimes strong types are inadequate precisely because you don't know exactly how much memory something is going to require. For example, a user entering their birthplace could be from "Orr, Minnesota" (14 bytes), or they could be from "Llanfairpwllgwyngyllgogerychwyrndrobwyll-llantysiliogogogoch, Wales" (67 bytes). You know it's character data, but how many bytes do you need to reserve to store it? Of course, because memory is finite, we are forced to set some upper bound on the size that we hope will be sufficient. 
-
-
-
-<p />This is where buffers come in. A buffer is allocated with a specified amount of space (the upper bound) and a type (usually char for character data) and are accessed via a pointer to the first byte of the buffer. Furthermore, allocated buffers will have some positional relationship in physical memory depending on how the compiler chooses to optimize the code. In our place name example, if we allocated a buffer of 60 bytes for "city" and then allocated a buffer of 20 bytes for "country" it is possible that they will be adjacent to each other (or perhaps some other buffers or variables). Unfortunately, programmers often neglect to make sure that input from the outside world (or even from the program itself) will fit into the declared size of the buffer. Instead, they often think, "There's <strong>no way</strong> that X will <em>ever</em> be longer than Y bytes!!!" Of course, perhaps X is <em>usually</em> shorter than Y, except when there is an error -- or when someone is intentionally trying to disrupt or compromise your system. 
-
-
-
-<p />In the strictest sense, a "buffer overflow" is when a buffer of size b is assigned data of size c where c &gt; b. Languages like C and C++ in practice will blithely assign the data c to the memory location b, and this means that whatever memory addresses were after b will now be replaced by the overflow of c. If done unintentionally, this will typically cause bizarre data corruption at the very least and very probably segmentation faults if the overflowed memory is read or dereferenced. This can be used to create denial-of-service attacks by crashing applications remotely with bogus input (e.g., the "Ping of Death"). 
-
-
-
-<p />However, with some careful planning, source code inspection and/or experimentation it is often possible to overwrite the function pointer on the stack of the application, in effect controlling the next "step" the program will take after it finishes reading the new input. This can be used to make the program loop back on itself, or to crash the program. Even more insidiously, it is often possible to dynamically rewrite the running program by including new function code in the data payload you use to overflow the buffer and<strong> then </strong>change the function pointer to point back to the function <em>you just stuffed into memory</em>. The program will finish reading the data, consult the newly assigned function pointer, and jump to the code you just provided. This allows you to remotely execute code with the permissions of the running software. Typical exploit payloads will further compromise the system by creating a new user, changing a privileged password, or performing some other action that makes additional compromise easier. This often leads to a root terminal session on the server, after which point the server must be considered completely compromised.  
-
-
-
-<p />Buffer overflows are an excellent example of why <strong>input validation</strong> is absolutely critical when writing any software. Input validation is the process of programmatically ensuring that all accepted input fits within the logical constraints of the application. This can be as simple as making sure that a social security number has no alphabetic letters (e.g., a fill-in form), or as complex as parsing the input for syntax (e.g., a software compiler). 
-
-<p />Ultimately, input validation is a part of the "principle of least privilege." We like to think that our programs can only do what we thought about while we designed them. But in fact, our programs can do (are granted the privilege to do) <i>whatever their code and environment allow</i>. Unvalidated input can often modify the behavior of an application, which directly modifies what the program is given the privilege to do. Thus, good programs always validate their input. 
-
-
-
-<p /><span class="anchor" id="bread"></span> 
-<h4>Additional Reading on Buffer Overflows</h4>
-
-<p />For more information, including detailed technical explanations, see: 
-
-<ul>
-<li><p /><a class="http" href="http://insecure.org/stf/smashstack.html">Smashing the Stack for Fun and Profit</a>, by AlephOne. This is the canonical HOWTO for buffer overflows.</li>
-<li><p /><a class="http" href="http://en.wikipedia.org/wiki/Buffer_overflow">Buffer Overflow</a> at Wikipedia</li>
-<li><p />...or many other online resources about this very popular attack.</li>
-</ul>
-
-
-<span class="anchor" id="tools"></span>
-<h3>Software Tools</h3>
-
-<p>This section will describe some tools you may need to complete this exercise. 
-
-<span class="anchor" id="running"></span> 
-<h4>Running fhttpd</h4>
-
-<p />
-Sometimes, poking and prodding programs makes them die. In particular, your goal in part of this exercise is to cause a process to crash. This means you need to know how to start and stop your server.<p />
-
-To start your server, start your experiment on SPHERE, ssh to the host <tt>bufferoverflow</tt> and cd into /usr/src/fhttpd. If you have made any changes to the source code, recompile the server using:<p />
-
-<pre>
-$ sudo make
-</pre>
-
-Then, start the server using:<p />
-
-<p />
-<pre>
-$ sudo ./webserver portnumber
-</pre>
-
-... where <tt>portnumber</tt> is some port number that <em>isn't</em> already in use. (I usually use 8080, but it doesn't matter.)  
-
-<p />The server will start up, and the output will be directed to your terminal, including incoming requests. Please note that the server will be running as root, since it was started using sudo. This is generally a bad idea, but is done here to model the way that it was used at FrobozzCo (see <a class='href' href='#tasks'>Tasks</a>).
-
-<p />You can then open another terminal session on <tt>server</tt> and run <tt>telnet&nbsp;localhost&nbsp;portnumber</tt>. Once connected, you can issue HTTP commands from the telnet terminal (see the sections on <a class='href' href='#rfc'>HTTP</a> and <a class='href' href='#telnet'>telnet</a>). If the server crashes for any reason, you will know immediately because you will be "kicked out" to your prompt when the server dies. You can then restart it easily using the steps just discussed. If you want to quit your server (without crashing it), press control-c.
-
-<p />Sometimes, when a process using the network dies unexpectedly, the socket is left open in the kernel until it times out. If you try to restart on the same port number, it may tell you that the socket is already in use. If that happens, you can either wait for the kernel to free up the socket, or just start the server on a different port. Since crashing and restarting the webserver usually results in a variety of ports being opened and close, I do not recommend using port forwarding for the buffer overflow portion of the lab. Just do everything in the console using 'telnet', 'netcat' (or 'nc'), 'elinks', and so on.
-
-<p />
-
-<span class="anchor" id="telnet"></span> 
-<h4>telnet: cleartext remote shell</h4>
-
-<p />
-<a class="http" href="http://en.wikipedia.org/wiki/Telnet">TELNET</a> (TELe-NETwork) is a cleartext remote terminal protocol. On its face, telnet is very simple; the user issues commands over a TCP socket, and the server replies with the results of those commands and waits for more input. In practice, this is complicated with various network and terminal emulation layers. Still, telnet is one of the simplest and oldest network protocols still in use. Due to its cleartext nature and low level access to the system, telnet is incredibly insecure -- it was common in the past for system administrators to log in as root using telnet on a hub network connection that could be sniffed by any sufficiently prepared attacker. 
-
-<p />
-Thanks to the advent of Secure Shell (ssh), active use of telnet servers has died off except for some specialized uses. One place where telnet lives on is debugging character based network services. For example, web pages can be retrieved by telnetting to HTTP servers, and emails can be sent by telnetting to SMTP servers. 
-
-<p />
-Telnetting to a suspected open port is still one of the fastest ways to see if a service is available or reachable. While <tt>wget</tt> is useful for scripts, telnet is useful for interactively probing network services that are based on plain text. In this exercise, we'll use telnet (and/or <tt>wget</tt>) to explore the vulnerable HTTP server. Here's an example of how to use telnet to access a web page:
-
-<p />
-
-<pre>$ telnet yahoo.com 80
+      <h2 id="overview">Overview</h2>
+      <p>The purpose of this exercise is to introduce you to the concept of buffer overflow and give you a first-hand opportunity to see them in source code, exploit them, and patch them. After successfully completing this exercise, you will be able to:</p>
+      <ol type="1">
+        <li>Accurately identify and describe buffer overflows</li>
+        <li>Identify buffer overflows in preexisting code, including an example webserver in C</li>
+        <li>
+          <p>Understand how vulnerabilities lead to:</p>
+          <ol type="1">
+            <li>Crashes</li>
+            <li>Remote execution exploits</li>
+            <li>Unauthorized access to private data</li>
+          </ol>
+        </li>
+        <li>Repair simple examples of buffer overflows in the aforementioned code</li>
+        <li>Author memos describing in detail your findings and code changes</li>
+      </ol>
+      <p>You should be familiar with the Unix command line, POSIX permissions, and basic programming. The exercise will also use C and HTTP, but at introductory levels.</p>
+      <h2 id="reading">Required Reading</h2>
+      <h3 id="bdesc">Buffer Overflows</h3>
+      <p>Buffer overflows are a unique kind of occurrence enabled by poor programming in certain languages (for example C, C++, and assembly code) that allow the use of fixed memory buffers for storing data and do not include automatic bounds checking. A buffer is a bounded region of memory into which data can be stored. Buffer overflows result when a buffer is assigned more data than it can hold. The buffer "overflows" into the next available memory space, overwriting the data. Strictly speaking, this is not necessarily an error. However, it has historically been the cause of many bugs and security flaws because so much commonly used code is written in these languages, including compilers, interpreters, and operating systems. Buffers are different from traditional variables in strongly-typed languages because each genuine type is of a fixed, predetermined size. For example, on most computers an 'int' in C is a 32-bit signed integer. By using the keyword 'int', the programmer has declared to the compiler that this variable and associated memory will never need to exceed 32 bits of storage space, and in fact the compiler ensures that this is not possible. (This is why partly why integers "wrap" when they "overflow" -- the other part is two's complement arithmetic, but that's a lecture for a different class.) Unfortunately, sometimes strong types are inadequate precisely because you don't know exactly how much memory something is going to require. For example, a user entering their birthplace could be from "Orr, Minnesota" (14 bytes), or they could be from "Llanfairpwllgwyngyllgogerychwyrndrobwyll-llantysiliogogogoch, Wales" (67 bytes). You know it's character data, but how many bytes do you need to reserve to store it? Of course, because memory is finite, we are forced to set some upper bound on the size that we hope will be sufficient. This is where buffers come in. A buffer is allocated with a specified amount of space (the upper bound) and a type (usually char for character data) and are accessed via a pointer to the first byte of the buffer. Furthermore, allocated buffers will have some positional relationship in physical memory depending on how the compiler chooses to optimize the code. In our place name example, if we allocated a buffer of 60 bytes for "city" and then allocated a buffer of 20 bytes for "country" it is possible that they will be adjacent to each other (or perhaps some other buffers or variables). Unfortunately, programmers often neglect to make sure that input from the outside world (or even from the program itself) will fit into the declared size of the buffer. Instead, they often think, "There's <strong>no way</strong> that X will <em>ever</em> be longer than Y bytes!!!" Of course, perhaps X is <em>usually</em> shorter than Y, except when there is an error -- or when someone is intentionally trying to disrupt or compromise your system. In the strictest sense, a "buffer overflow" is when a buffer of size b is assigned data of size c where c &gt; b. Languages like C and C++ in practice will blithely assign the data c to the memory location b, and this means that whatever memory addresses were after b will now be replaced by the overflow of c. If done unintentionally, this will typically cause bizarre data corruption at the very least and very probably segmentation faults if the overflowed memory is read or dereferenced. This can be used to create denial-of-service attacks by crashing applications remotely with bogus input (e.g., the "Ping of Death"). However, with some careful planning, source code inspection and/or experimentation it is often possible to overwrite the function pointer on the stack of the application, in effect controlling the next "step" the program will take after it finishes reading the new input. This can be used to make the program loop back on itself, or to crash the program. Even more insidiously, it is often possible to dynamically rewrite the running program by including new function code in the data payload you use to overflow the buffer and<strong> then </strong>change the function pointer to point back to the function <em>you just stuffed into memory</em>. The program will finish reading the data, consult the newly assigned function pointer, and jump to the code you just provided. This allows you to remotely execute code with the permissions of the running software. Typical exploit payloads will further compromise the system by creating a new user, changing a privileged password, or performing some other action that makes additional compromise easier. This often leads to a root terminal session on the server, after which point the server must be considered completely compromised. Buffer overflows are an excellent example of why <strong>input validation</strong> is absolutely critical when writing any software. Input validation is the process of programmatically ensuring that all accepted input fits within the logical constraints of the application. This can be as simple as making sure that a social security number has no alphabetic letters (e.g., a fill-in form), or as complex as parsing the input for syntax (e.g., a software compiler). Ultimately, input validation is a part of the "principle of least privilege." We like to think that our programs can only do what we thought about while we designed them. But in fact, our programs can do (are granted the privilege to do) <i>whatever their code and environment allow</i>. Unvalidated input can often modify the behavior of an application, which directly modifies what the program is given the privilege to do. Thus, good programs always validate their input.</p>
+      <h4 id="bread">Additional Reading on Buffer Overflows</h4>
+      <p>For more information, including detailed technical explanations, see:</p>
+      <ul>
+        <li><a href="http://insecure.org/stf/smashstack.html">Smashing the Stack for Fun and Profit</a>, by AlephOne. This is the canonical HOWTO for buffer overflows.</li>
+        <li><a href="http://en.wikipedia.org/wiki/Buffer_overflow">Buffer Overflow</a> at Wikipedia</li>
+        <li>...or many other online resources about this very popular attack.</li>
+      </ul>
+      <h3 id="tools">Software Tools</h3>
+      <p>This section will describe some tools you may need to complete this exercise.</p>
+      <h4 id="running">Running fhttpd</h4>
+      <p>Sometimes, poking and prodding programs makes them die. In particular, your goal in part of this exercise is to cause a process to crash. This means you need to know how to start and stop your server. To start your server, start your experiment on SPHERE, ssh to the host <code>bufferoverflow</code> and cd into /usr/src/fhttpd. If you have made any changes to the source code, recompile the server using:</p>
+      <div class="code">
+        <pre><code>$ sudo make</code></pre>
+      </div>
+      <p>Then, start the server using:</p>
+      <div class="code">
+        <pre><code>$ sudo ./webserver portnumber</code></pre>
+      </div>
+      <p>... where <code>portnumber</code> is some port number that <em>isn't</em> already in use. (I usually use 8080, but it doesn't matter.) The server will start up, and the output will be directed to your terminal, including incoming requests. Please note that the server will be running as root, since it was started using sudo. This is generally a bad idea, but is done here to model the way that it was used at FrobozzCo (see <a href="#tasks">Tasks</a>). You can then open another terminal session on <code>server</code> and run <code>telnet&nbsp;localhost&nbsp;portnumber</code>. Once connected, you can issue HTTP commands from the telnet terminal (see the sections on <a href="#rfc">HTTP</a> and <a href="#telnet">telnet</a>). If the server crashes for any reason, you will know immediately because you will be "kicked out" to your prompt when the server dies. You can then restart it easily using the steps just discussed. If you want to quit your server (without crashing it), press control-c. Sometimes, when a process using the network dies unexpectedly, the socket is left open in the kernel until it times out. If you try to restart on the same port number, it may tell you that the socket is already in use. If that happens, you can either wait for the kernel to free up the socket, or just start the server on a different port. Since crashing and restarting the webserver usually results in a variety of ports being opened and close, I do not recommend using port forwarding for the buffer overflow portion of the lab. Just do everything in the console using 'telnet', 'netcat' (or 'nc'), 'elinks', and so on.</p>
+      <h4 id="telnet">telnet: cleartext remote shell</h4>
+      <p><a href="http://en.wikipedia.org/wiki/Telnet">TELNET</a> (TELe-NETwork) is a cleartext remote terminal protocol. On its face, telnet is very simple; the user issues commands over a TCP socket, and the server replies with the results of those commands and waits for more input. In practice, this is complicated with various network and terminal emulation layers. Still, telnet is one of the simplest and oldest network protocols still in use. Due to its cleartext nature and low level access to the system, telnet is incredibly insecure -- it was common in the past for system administrators to log in as root using telnet on a hub network connection that could be sniffed by any sufficiently prepared attacker.  Thanks to the advent of Secure Shell (ssh), active use of telnet servers has died off except for some specialized uses. One place where telnet lives on is debugging character based network services. For example, web pages can be retrieved by telnetting to HTTP servers, and emails can be sent by telnetting to SMTP servers.  Telnetting to a suspected open port is still one of the fastest ways to see if a service is available or reachable. While <code>wget</code> is useful for scripts, telnet is useful for interactively probing network services that are based on plain text. In this exercise, we'll use telnet (and/or <code>wget</code>) to explore the vulnerable HTTP server. Here's an example of how to use telnet to access a web page:</p>
+      <div class="code">
+        <pre><code>$ telnet yahoo.com 80
 
 Trying 66.94.234.13...
 Connected to yahoo.com.
@@ -188,20 +121,13 @@ GET /
 &lt;/body&gt;
 &lt;/html&gt;
 
-Connection closed by foreign host.
-</pre>
-
-<span class="anchor" id="rfc"></span> 
-<h4>The HTTP Protocol</h4>
-
-
-<p>In this exercise you will be attacking a web server. A web server is an application that takes input over TCP port 80, and responds to the client based on the outcome of the request. <i>The language that web servers speak is known as HTTP -- the Hyper Text Tranfer Protocol.</i> If a request is successful, the server will provide the requested information along with a success message as defined in the protocol. If the request fails, the server is supposed to respond with an error message detailing why it failed. When trying to see where a bug or vulnerability is in a server application, it is often important to understand the protocol the server is supposed to understand.<p />
-
-<p />Making simple HTTP requests over telnet is easy. It is a specially-formed request that ends with two returns -- one to end the last line and one to create a blank line.
-
-<p />Here's an example:
-
-<pre>$ telnet localhost 8080 (or whatever port your server is running on)
+Connection closed by foreign host.</code></pre>
+      </div>
+      <h4 id="rfc">The HTTP Protocol</h4>
+      <p>In this exercise you will be attacking a web server. A web server is an application that takes input over TCP port 80, and responds to the client based on the outcome of the request. <i>The language that web servers speak is known as HTTP -- the Hyper Text Tranfer Protocol.</i> If a request is successful, the server will provide the requested information along with a success message as defined in the protocol. If the request fails, the server is supposed to respond with an error message detailing why it failed. When trying to see where a bug or vulnerability is in a server application, it is often important to understand the protocol the server is supposed to understand.</p>
+      <p>Making simple HTTP requests over telnet is easy. It is a specially-formed request that ends with two returns -- one to end the last line and one to create a blank line. Here's an example:</p>
+      <div class="code">
+        <pre><code>$ telnet localhost 8080 (or whatever port your server is running on)
 
 Trying 66.94.234.13...
 Connected to yahoo.com.
@@ -215,23 +141,16 @@ GET /
 &lt;/body&gt;
 &lt;/html&gt;
 
-Connection closed by foreign host.
-</pre>
-
-<p />In the above example, the client (using telnet) requested the root document on the server (<tt>GET /</tt> followed by two "returns").
-
-<div class="infobox">
-<p><img src="idea.png" />
-An HTTP request ends with two "returns" or "enters" -- one ends the last line of the request (which can be on multiple lines) and the other is a blank line. That's how the web server knows the request is over. Please note that for HTTP, a line ending consists of a carriage return character (CR) and a line feed character (LF). This is different from most files in UNIX which simply end with an LF. See <a class='href' href="#crlf">the section on line endings</a> for more information.
-<p />
-</div>
-
-
-<p /><a class="http" href="http://www.w3.org/Protocols/rfc1945/rfc1945">RFC 1945</a> defines a version of HTTP, and is a good (although dense) resource for understanding the HTTP protocol. You can also look at the above section on <tt>telnet</tt>, which provides an example of a very simple web request. If you search online, you should be able to find many other resources describing HTTP. 
-
-<p>Our webserver supports a very small number of extended "HTTP 1.1" requests, which can be made like so:<p />
-
-<pre>$ telnet localhost 8080 (or whatever port your server is running on)
+Connection closed by foreign host.</code></pre>
+      </div>
+      <p>In the above example, the client (using telnet) requested the root document on the server (<code>GET /</code> followed by two "returns").</p>
+      <aside class="note tip">
+        <p>An HTTP request ends with two "returns" or "enters" -- one ends the last line of the request (which can be on multiple lines) and the other is a blank line. That's how the web server knows the request is over. Please note that for HTTP, a line ending consists of a carriage return character (CR) and a line feed character (LF). This is different from most files in UNIX which simply end with an LF. See <a href="#crlf">the section on line endings</a> for more information.</p>
+      </aside>
+      <p><a href="http://www.w3.org/Protocols/rfc1945/rfc1945">RFC 1945</a> defines a version of HTTP, and is a good (although dense) resource for understanding the HTTP protocol. You can also look at the above section on <code>telnet</code>, which provides an example of a very simple web request. If you search online, you should be able to find many other resources describing HTTP.</p>
+      <p>Our webserver supports a very small number of extended "HTTP 1.1" requests, which can be made like so:</p>
+      <div class="code">
+        <pre><code>$ telnet localhost 8080 (or whatever port your server is running on)
 
 Trying 66.94.234.13...
 Connected to yahoo.com.
@@ -241,22 +160,14 @@ Special-Request-Goes-Here
 
 ...
 
-Connection closed by foreign host.
-</pre>
-
-<p>Here, the user specifies "HTTP/1.1" after the URI and presses return once. Then, they can submit additions to their request, followed by two "returns". Those requests are parsed by the server before it returns any matching file.<p />
-
-<p>The web server you will be attacking supports only a very small subset of these extended HTTP requests. One good way of exploring potential attacks is to examine the source code to determine what kinds of requests the server will even attempt to process, and see if any of those code paths involve fixed length buffers and/or lack input validation (e.g., bounds checking).</p>
-
-
-<p />
-<span class="anchor" id="wget"></span> 
-<h4>wget: non-interactive command-line network client</h4>
-
-<p />
-<tt>wget</tt> is a command-line web client useful for scripting interactions with servers. <tt>wget</tt> supports several protocols, but is mainly used for interacting with web servers. In its most basic use, the user specifies a URL on the command line, and <tt>wget</tt> fetches that URL. For example, to download Google's home page, one can simply execute:
-
-<pre>$ wget http://www.google.com
+Connection closed by foreign host.</code></pre>
+      </div>
+      <p>Here, the user specifies "HTTP/1.1" after the URI and presses return once. Then, they can submit additions to their request, followed by two "returns". Those requests are parsed by the server before it returns any matching file.</p>
+      <p>The web server you will be attacking supports only a very small subset of these extended HTTP requests. One good way of exploring potential attacks is to examine the source code to determine what kinds of requests the server will even attempt to process, and see if any of those code paths involve fixed length buffers and/or lack input validation (e.g., bounds checking).</p>
+      <h4 id="wget">wget: non-interactive command-line network client</h4>
+      <p><code>wget</code> is a command-line web client useful for scripting interactions with servers. <code>wget</code> supports several protocols, but is mainly used for interacting with web servers. In its most basic use, the user specifies a URL on the command line, and <code>wget</code> fetches that URL. For example, to download Google's home page, one can simply execute:</p>
+      <div class="code">
+        <pre><code>$ wget http://www.google.com
 --2024-08-21 19:53:30--  http://www.google.com/
 Resolving www.google.com (www.google.com)... 142.250.188.228, 2607:f8b0:4007:814::2004
 Connecting to www.google.com (www.google.com)|142.250.188.228|:80... connected.
@@ -264,276 +175,165 @@ HTTP request sent, awaiting response... 200 OK
 Length: unspecified [text/html]
   Saving to: ‘index.html.’
 
-  index.html                               [ <=>                                                                       ]  19.99K  --.-KB/s    in 0s      
-
-2024-08-21 19:53:30 (185 MB/s) - ‘index.html’ saved [20467]
-</pre>
-
-<span class="anchor" id="netcat" />
-<h4>netcat (or nc): a network swiss army knife</h4>
-
-<p />
-<a class="http" href="http://en.wikipedia.org/wiki/Netcat">netcat</a> (often <tt class="backtick">nc</tt> on some systems) is a Unix utility for creating and using TCP and UDP sockets. In a very simplified way, <tt class="backtick">netcat</tt> is like a telnet client and server without any built in protocol or terminal emulation. Another way of putting it is that <tt class="backtick">netcat</tt> is the barebones for creating a TCP or UDP socket and client, with hooks for using standard in and standard out for IO. 
-
-<p />In this exercise, we will use netcat as a means of sending an attack payload to a vulnerable TCP server. To send a file to the host <tt>receiver</tt> at port <tt>10000</tt>, do something like this:
-
-<p>
-<pre>$ netcat receiver 10000 &lt;&lt; attackscript.txt
-</pre>
-
-<p />
-This gives the data in the file <tt>attackscript.txt</tt> as input to <tt>netcat</tt> which directs it to the host <tt>receiver</tt> at port 10000. See the next section for important notes on file formats.
-
-<span class="anchor" id="crlf"></span> 
-<h4>CRLF vs. LF newlines: line endings and network protocols</h4>
-
-<p>This section describes some important information you will need for creating your exploits.
-<p />
-A file is really just a stream of characters. But humans read "lines" of text. How does the computer know where one line ends and another begins? The answer is that at the end of every line of text is an invisible newline character sequence. Unfortunately, there are two common newline character sequences, and most systems expect one or the other for normal text files. In particular, Windows/DOS tend to use CRLF (carriage return followed by line-feed), while Unix uses LF (line-feed) only. Some editors or commands create CRLFs at the end of a line, while others just create LFs. Likewise, some network servers expect CRLF, and others expect just LF (and these differences are not Windows or Linux specific). Handling this is easy if you follow these two steps: 
-
-<ol type="1">
-<li>Figure out what format you need to use for a particular task.</li>
-<li>Figure out what format your editor creates, and learn how to convert it.</li>
-</ol>
-
-<p />
-For example, Notepad in Windows adds CRLF to the end of each line. However, Wordpad in Windows only uses LF, and can save in either Unix or DOS format. <tt class="backtick">vim</tt> on Unix uses LF (Unix-style) line endings by default, but will use CRLF (DOS-style) endings if the file is in DOS mode. You can also force <tt class="backtick">vim</tt> to use DOS mode by typing: 
-
-<p />
-
-<pre>:set fileformat=dos
-</pre>
-
-<p />
-This will use CRLF as the line termination, rather than just LF (the Unix standard). This is important if you are scripting commands for certain protocols, such as HTTP. 
-
-<p />
-
-
-<div class="infobox">
-<p />
-<img src="idea.png" />
-Telnet produces CRLF line endings, and HTTP expects CRLF line endings, which is why you can make HTTP requests with it.
-</div>
-<p/>
-
-
-<h5>Scripting Exploits</h5>
-<p />
-
-<p />
-The "example payload" files on your experimental node (in /root/submission) are already in DOS mode, so you shouldn't have to do anything to them. However, if you're going to create a new exploit file for this exercise or some other project, you should edit it in DOS mode or otherwise make sure that you are using CRLF as line endings instead of just LF.
-
-<span class="anchor" id="diffpatch"></span> 
-<h4>diff and patch: see differences and create source patches</h4>
-
-<p />
-In this exercise, you'll be fixing security vulnerabilities in a few simple programs. However, instead of your whole program, we only want the <i>differences</i> between your new, fixed, program, and the original. A file which contains only the <i>changes</i> between two revisions of a program is called a "patch." Fortunately, creating patch files for single-file source programs is easy.
-
-<p>To see the differences between two files on Unix, you use the <tt>diff</tt> utility:
-
-<pre>
-$ diff -u one.txt two.txt
-</pre>
-
-Another useful tool is called <tt>patch</tt>. <tt>patch</tt> takes properly-formatted <tt>diff</tt> output, and applies the changes to the original file. <tt>diff</tt> can generate this output with a few options:
-
-<p />
-
-<pre>$ diff -u oldcode.c newcode.c &gt; fixed.patch
-</pre>
-
-<div class="infobox">
-<p />
-<img src="idea.png" />
-<tt>diff</tt> has many options to modify its behavior (see <tt>man diff</tt> for more information). <p />
-
-</div>
-
-
-<p />
-This above options for <tt>diff</tt> will create a patch with the filenames and all necessary information that the <tt>patch</tt> program requires. This makes patching as simple as executing: 
-
-<p />
-
-<pre>$ patch oldcode.c -i fixed.patch -o new-patched-file.c
-</pre>
-
-<p />
-... and this will create a patched version of the program that you can test. 
-
-<p />
-When submitting a patch file, it is <strong>highly recommended</strong> that you create the patch and then <strong>test it</strong> before submitting it to make sure that it works. You will not get any points for code that does not execute or compile in the exercise environment. 
-
-<p />
-If you're having permissions problems, consider switching to root by executing <tt class="backtick">sudo&nbsp;su&nbsp;-</tt> or change the permissions of the source directory in question. 
-
-<p />
-<span class="anchor" id="intro"></span> 
-<h2>Introduction</h2>
-
-<p />You are the security administrator for FrobozzCo, a large corporation with a great many secrets. You have just come back from a much-needed four week vacation in West Shanbar, only to find that FrobozzCo has been having some <em>serious </em>security issues! In order to do everything you need, you've prepared a test environment on SPHERE with the software installed. 
-
-<span class="anchor" id="assignment"></span> 
-<h2>Assignment Instructions</h2>
-
-<h3 class="anchor" id="setup">Setup</h3>
-<ol>
-	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
-</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>bufferoverflow</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
-</li><li>After setting up the lab, access your <tt>bufferoverflow</tt> node. <p /></ol></ol><p />
-
-
-<p />Make sure that you save your work as you go. See the instructions in the <a href="#submission">submission section</a> of this exercise for information about save and restore scripts. Make sure that you save any changes you make to the sourcecode, your patches, memos, etc. in your home directory so they are not lost when you swap out your experiment.
-
-</div>
-
-<span class="anchor" id="tasks"></span>
-<div class="level3">
-<h3>Tasks</h3>
-
-<div class="ai">
-<p />
-<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
-</div>
-
-
-<span class="anchor" id="bstory" />
-<h4>Buffer Overflows -- The Webserver</h4>
-
-
-<p />FrobozzCo has a longstanding tradition of<em> reinventing the wheel whenever possible</em>. As the old saying goes, "Why use something great that someone else made when you  can use a mediocre thing you made yourself?" Additionally, the prevailing belief in management is that in-house software is more secure than third-party software since FrobozzCo alone has access to the sourcecode. To that end, when the Great Web Revolution hit and statistics relating to frobnick production were needed by remote facilities, the higher-ups at FrobozzCo insisted that their engineers write a webserver daemon, and it has been dutifully (if unspectacularly) serving web pages for many years. <i>They also requested that it run as root, rather than have to both with setting permissions.</i> 
-
-<p />Unfortunately,  it is clear that someone has "rooted" (i.e., gained unauthorized superuser access to) the server; a number of root access files were copied out over the Internet and then the server started sending tons of spam. Fortunately, no data was lost, but the intruder had full control of the server and it is still unknown how they got in. You are convinced there is an exploitable buffer overflow bug in the web server software, but your boss, William H. Flathead III laughed off your suspicions saying, "I wrote the web server software -- and I'd never have made that mistake!" 
-
-<p />Nevertheless, he suggests you investigate the possibility of a buffer overflow, "just to be sure."
-
-<p />He asks you to produce a one page memo with an attached <strong>working demo</strong> that targets a specific buffer overflow (should one exist) causing the server to crash. This should be an intentionally exploitable hole in the code and not simply a robustness issue. If you find a vulnerability, your boss wants a patch to fix it. Finally, he wants to know how to clean up this mess -- how severe is this <em>specific</em> compromise? How can we restore the system to a safe state? 
-
-<p /><span class="anchor" id="bassign"></span> 
-
-
-<h4>Buffer Overflow Tasks</h4>
-
-
-<ol>
-	<li><p />Load your experiment in SPHERE.</li>
-	<li><p />Find the webserver code, located in <tt>/usr/src/fhttpd</tt>.</li>
-	<li><p />Compile and run the code, using the instructions in <a class='http' href='#running'>the lab manual section on compiling and running the webserver</a></li> 
-	<li><p />Copy webserver.c to webserver.orig.c so that you can make a patch against the original.</li>	
-	<li><p />Find the buffer overflow in the <tt>fhttpd</tt> webserver code.</li> 
-	<li><p />Exploit the overflow, causing the software to crash.</li> 
-		<ul>
-		<li><p /><strong>Please note: you may be able to crash the software in other ways (e.g., a null pointer dereference) -- we are only specifically interested in a buffer overflow caused by input that is not properly bound-checked.</strong></li>
-		<li><p />See <a class="http" href="#rfc">the section on the HTTP protocol</a>, where you can learn about what the HTTP API looks like and how to send commands to web servers manually.</li>
-		</ul>
-		<li><p />Create an your exploit program, using the skeleton exploit we provided in <tt>/root/submission/exploit.sh</tt> and <tt>/root/submission/payload</tt>. Edit <tt>/root/submission/payload</tt> to include your attack data.</li>
-		<li><p />Fix the buffer overflow bug in the fhttpd sourcecode and create a patch against the original using the information below (and in <a class='http' href='#diffpatch'>the lab manual section on diff and patch</a>).</li> 
-		<li><p>Once you have fixed the flaw (and assuming you have webserver.orig.c), create a patch like so:</p>
-			<ul>
-				<li>cd into the source code directory</li>
-				<li>execute: <tt>diff -Naur webserver.orig.c webserver.c &gt; webserver.patch</tt></li>
-			</ul>
-		</li>
-		</ul>
-	<li><p />Write a ~1 page memo: 
-		<ol>
-		<li><p />Describe the security flaw you found, how you fixed it, and how your demo exploit works. (The memo itself should quote as little source code as possible; for longer sections, refer to filenames and line numbers in the original or your attached patch.)</li>
-		<li><p />Considering fhttpd alone, include in your memo: </li>
-			<ol>
-			<li><p />An evaluation of the seriousness of the breach</li>
-			<li><p />A recovery plan for the server. (Is it enough to fix the flaw? Why or why not?) </li>
-			<li><p />Any other observations or thoughts you might have.</li>
-			</ol>
-		</ol>
-	<li><p />Put the following files into in <tt>/root/submission</tt>:</li>
-		<ol>
-		<li><p />your memo </li>
-		<li><p />your working demo with instructions </li>
-		<li><p />your patch </li>
-		</ol>
-		<div class="ai">
-		  <b>AI-option:</b> If you have used AI to find and patch the buffer overflow, you must provide <i>hand-written</i> answers to the following questions.  You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Note: you can ask AI to provide answers to the learning questions below.
-            <ol type="a">
-              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
-              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
-              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
-<li>Learning question: What are all the possible buffers in this code that may be vulnerable to a buffer overflow?
-<li>Learning question: Which out of these buffers depend on user input?
-<li>Learning question: What is user input in case of a Web server? How do you "send a user input" to the Web server?
-<li>Learning question: How long at the minimum did user input need to be to crash the server? How was this calculated?
-              </ol>
-</div>
-
-		  </div>
-	<li><p />Use the scripts described in the <a href="#submission">submission section</a> for creating a submission tarball.</li>
-</ol>
-
-</div>
-
-<span class="anchor" id="glitches"></span>
-
-<div class="level3">
-<h3>What can go wrong</h3>
-
-  There are no known issues.
-
-
-</div>
-<span class="anchor" id="extra"></span> 
-<h2>Extra Credit</h2>
-
-<h3>Remote Execution</h3>
-
-<p />The assigned task for this exercise is to simply crash <tt>fhttpd</tt> with an attack payload. However, it is possible to inject code via the payload and take over the application. Since <tt>fhttpd</tt> runs with root privileges, you can execute anything on the system if you manage to take over the program.
-
-For extra credit, do #1 and/or #2 below, and then #3:
-<ol>
-<li><p />Create and successfully execute a remote execution exploit using the vulnerability in <tt>fhttpd</tt>. This could be as simple as writing a file to the system.</li>
-<li><p />0wn the box: Create a remote shell you can send commands to, add a login user with root access, or some other reliable remote access facility.</li>
-<li><p />Draft a short writeup describing the steps you took to create the exploit and what you learned in the process.</li>
-</ol>
-
-		<div class="ai">
-		  <b>AI-option:</b> If you have used AI to find and patch the buffer overflow, you must provide <i>hand-written</i> answers to the following questions.  You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI-extra-credit" folder. Note: you can ask AI to provide answers to the learning questions below.
-            <ol type="a">
-              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
-              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
-              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
-<li>Learning question: What does your remote exploit do?
-<li>Learning question: How did you create the remote shell?
-<li>Learning question: Your input needed to be encoded in a special way to pass it to the server. Ask AI to explain all the steps and note the steps in your answers. Just describing a step is sufficient. You do not have to provide the actual user input with the exploit on the hand-written part of your answer.
-              </ol>
-</div>
-
-
-<span class="anchor" id="submission"></span> 
-<h2>Submission Instructions</h2>
-
-<p />For this exercise, you will submit a tarball containing your patch, memo, and exploit code. Use the script submit.sh in /root on the <tt>server</tt> host for creating and restoring those tarballs.
-
-<p />
-<h2>submit.sh and restore.sh</h2>
-
-
-<p /><tt>submit.sh</tt> will back up: 
-
-<ul>
-<li><p />the source code directory <tt>/usr/src/fhttpd/</tt> 
-</li><li><p />everything in <tt>/root/submission</tt>, which should include:
-<ol>
-	<li><tt>exploit.sh</tt></li>
-	<li><tt>payload</tt></li>
-	<li>your memo</li>
-   	<li>patch</li>
-</ol>
-</ul>
-
-<p /><tt>restore.sh</tt> will restore those files to their original locations, automatically overwriting whatever is there. 
-
-<p />Submit your tarball to your instructor. 
-
-
-
-</div>
-</body></html>
+  index.html                               [ &lt;=&gt;                                                                       ]  19.99K  --.-KB/s    in 0s      
+
+2024-08-21 19:53:30 (185 MB/s) - ‘index.html’ saved [20467]</code></pre>
+      </div>
+      <h4 id="netcat">netcat (or nc): a network swiss army knife</h4>
+      <p><a href="http://en.wikipedia.org/wiki/Netcat">netcat</a> (often <code>nc</code> on some systems) is a Unix utility for creating and using TCP and UDP sockets. In a very simplified way, <code>netcat</code> is like a telnet client and server without any built in protocol or terminal emulation. Another way of putting it is that <code>netcat</code> is the barebones for creating a TCP or UDP socket and client, with hooks for using standard in and standard out for IO. In this exercise, we will use netcat as a means of sending an attack payload to a vulnerable TCP server. To send a file to the host <code>receiver</code> at port <code>10000</code>, do something like this:</p>
+      <div class="code">
+        <pre><code>$ netcat receiver 10000 &lt;&lt; attackscript.txt</code></pre>
+      </div>
+      <p>This gives the data in the file <code>attackscript.txt</code> as input to <code>netcat</code> which directs it to the host <code>receiver</code> at port 10000. See the next section for important notes on file formats.</p>
+      <h4 id="crlf">CRLF vs. LF newlines: line endings and network protocols</h4>
+      <p>This section describes some important information you will need for creating your exploits.</p>
+      <p>A file is really just a stream of characters. But humans read "lines" of text. How does the computer know where one line ends and another begins? The answer is that at the end of every line of text is an invisible newline character sequence. Unfortunately, there are two common newline character sequences, and most systems expect one or the other for normal text files. In particular, Windows/DOS tend to use CRLF (carriage return followed by line-feed), while Unix uses LF (line-feed) only. Some editors or commands create CRLFs at the end of a line, while others just create LFs. Likewise, some network servers expect CRLF, and others expect just LF (and these differences are not Windows or Linux specific). Handling this is easy if you follow these two steps:</p>
+      <ol type="1">
+        <li>Figure out what format you need to use for a particular task.</li>
+        <li>Figure out what format your editor creates, and learn how to convert it.</li>
+      </ol>
+      <p>For example, Notepad in Windows adds CRLF to the end of each line. However, Wordpad in Windows only uses LF, and can save in either Unix or DOS format. <code>vim</code> on Unix uses LF (Unix-style) line endings by default, but will use CRLF (DOS-style) endings if the file is in DOS mode. You can also force <code>vim</code> to use DOS mode by typing:</p>
+      <div class="code">
+        <pre><code>:set fileformat=dos</code></pre>
+      </div>
+      <p>This will use CRLF as the line termination, rather than just LF (the Unix standard). This is important if you are scripting commands for certain protocols, such as HTTP.</p>
+      <aside class="note tip">
+        <p>Telnet produces CRLF line endings, and HTTP expects CRLF line endings, which is why you can make HTTP requests with it.</p>
+      </aside>
+      <h5>Scripting Exploits</h5>
+      <p>The "example payload" files on your experimental node (in /root/submission) are already in DOS mode, so you shouldn't have to do anything to them. However, if you're going to create a new exploit file for this exercise or some other project, you should edit it in DOS mode or otherwise make sure that you are using CRLF as line endings instead of just LF.</p>
+      <h4 id="diffpatch">diff and patch: see differences and create source patches</h4>
+      <p>In this exercise, you'll be fixing security vulnerabilities in a few simple programs. However, instead of your whole program, we only want the <i>differences</i> between your new, fixed, program, and the original. A file which contains only the <i>changes</i> between two revisions of a program is called a "patch." Fortunately, creating patch files for single-file source programs is easy.</p>
+      <p>To see the differences between two files on Unix, you use the <code>diff</code> utility:</p>
+      <div class="code">
+        <pre><code>$ diff -u one.txt two.txt</code></pre>
+      </div>
+      <p>Another useful tool is called <code>patch</code>. <code>patch</code> takes properly-formatted <code>diff</code> output, and applies the changes to the original file. <code>diff</code> can generate this output with a few options:</p>
+      <div class="code">
+        <pre><code>$ diff -u oldcode.c newcode.c &gt; fixed.patch</code></pre>
+      </div>
+      <aside class="note tip">
+        <p><code>diff</code> has many options to modify its behavior (see <code>man diff</code> for more information).</p>
+      </aside>
+      <p>This above options for <code>diff</code> will create a patch with the filenames and all necessary information that the <code>patch</code> program requires. This makes patching as simple as executing:</p>
+      <div class="code">
+        <pre><code>$ patch oldcode.c -i fixed.patch -o new-patched-file.c</code></pre>
+      </div>
+      <p>... and this will create a patched version of the program that you can test.  When submitting a patch file, it is <strong>highly recommended</strong> that you create the patch and then <strong>test it</strong> before submitting it to make sure that it works. You will not get any points for code that does not execute or compile in the exercise environment.  If you're having permissions problems, consider switching to root by executing <code>sudo&nbsp;su&nbsp;-</code> or change the permissions of the source directory in question.</p>
+      <h2 id="intro">Introduction</h2>
+      <p>You are the security administrator for FrobozzCo, a large corporation with a great many secrets. You have just come back from a much-needed four week vacation in West Shanbar, only to find that FrobozzCo has been having some <em>serious </em>security issues! In order to do everything you need, you've prepared a test environment on SPHERE with the software installed.</p>
+      <h2 id="assignment">Assignment Instructions</h2>
+      <h3 id="setup">Setup</h3>
+      <ol type="1">
+        <li>If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.</li>
+        <li>
+          <p>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <code>bufferoverflow</code> as Lab name. Your topology will look like below:</p>
+          <p><img src="topo.png">.</p>
+        </li>
+        <li>After setting up the lab, access your <code>bufferoverflow</code> node.</li>
+      </ol>
+      <p>Make sure that you save your work as you go. See the instructions in the <a href="#submission">submission section</a> of this exercise for information about save and restore scripts. Make sure that you save any changes you make to the sourcecode, your patches, memos, etc. in your home directory so they are not lost when you swap out your experiment.</p>
+      <h3 id="tasks">Tasks</h3>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p>Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.</p>
+      </aside>
+      <h4 id="bstory">Buffer Overflows -- The Webserver</h4>
+      <p>FrobozzCo has a longstanding tradition of<em> reinventing the wheel whenever possible</em>. As the old saying goes, "Why use something great that someone else made when you can use a mediocre thing you made yourself?" Additionally, the prevailing belief in management is that in-house software is more secure than third-party software since FrobozzCo alone has access to the sourcecode. To that end, when the Great Web Revolution hit and statistics relating to frobnick production were needed by remote facilities, the higher-ups at FrobozzCo insisted that their engineers write a webserver daemon, and it has been dutifully (if unspectacularly) serving web pages for many years. <i>They also requested that it run as root, rather than have to both with setting permissions.</i> Unfortunately, it is clear that someone has "rooted" (i.e., gained unauthorized superuser access to) the server; a number of root access files were copied out over the Internet and then the server started sending tons of spam. Fortunately, no data was lost, but the intruder had full control of the server and it is still unknown how they got in. You are convinced there is an exploitable buffer overflow bug in the web server software, but your boss, William H. Flathead III laughed off your suspicions saying, "I wrote the web server software -- and I'd never have made that mistake!" Nevertheless, he suggests you investigate the possibility of a buffer overflow, "just to be sure." He asks you to produce a one page memo with an attached <strong>working demo</strong> that targets a specific buffer overflow (should one exist) causing the server to crash. This should be an intentionally exploitable hole in the code and not simply a robustness issue. If you find a vulnerability, your boss wants a patch to fix it. Finally, he wants to know how to clean up this mess -- how severe is this <em>specific</em> compromise? How can we restore the system to a safe state?</p>
+      <h4 id="bassign">Buffer Overflow Tasks</h4>
+      <ol>
+        <li>Load your experiment in SPHERE.</li>
+        <li>Find the webserver code, located in <code>/usr/src/fhttpd</code>.</li>
+        <li>Compile and run the code, using the instructions in <a href="#running">the lab manual section on compiling and running the webserver</a></li>
+        <li>Copy webserver.c to webserver.orig.c so that you can make a patch against the original.</li>
+        <li>Find the buffer overflow in the <code>fhttpd</code> webserver code.</li>
+        <li>Exploit the overflow, causing the software to crash.</li>
+        <ul>
+          <li><strong>Please note: you may be able to crash the software in other ways (e.g., a null pointer dereference) -- we are only specifically interested in a buffer overflow caused by input that is not properly bound-checked.</strong></li>
+          <li>See <a href="#rfc">the section on the HTTP protocol</a>, where you can learn about what the HTTP API looks like and how to send commands to web servers manually.</li>
+        </ul>
+        <li>Create an your exploit program, using the skeleton exploit we provided in <code>/root/submission/exploit.sh</code> and <code>/root/submission/payload</code>. Edit <code>/root/submission/payload</code> to include your attack data.</li>
+        <li>Fix the buffer overflow bug in the fhttpd sourcecode and create a patch against the original using the information below (and in <a href="#diffpatch">the lab manual section on diff and patch</a>).</li>
+        <li>
+          <p>Once you have fixed the flaw (and assuming you have webserver.orig.c), create a patch like so:</p>
+          <ul>
+            <li>cd into the source code directory</li>
+            <li>execute: <code>diff -Naur webserver.orig.c webserver.c &gt; webserver.patch</code></li>
+          </ul>
+        </li>
+        <li>
+          <p>Write a ~1 page memo:</p>
+          <ol>
+            <li>Describe the security flaw you found, how you fixed it, and how your demo exploit works. (The memo itself should quote as little source code as possible; for longer sections, refer to filenames and line numbers in the original or your attached patch.)</li>
+            <li>Considering fhttpd alone, include in your memo:</li>
+            <ol>
+              <li>An evaluation of the seriousness of the breach</li>
+              <li>A recovery plan for the server. (Is it enough to fix the flaw? Why or why not?)</li>
+              <li>Any other observations or thoughts you might have.</li>
+            </ol>
+          </ol>
+        </li>
+        <li>Put the following files into in <code>/root/submission</code>:</li>
+        <ol>
+          <li>your memo</li>
+          <li>your working demo with instructions</li>
+          <li>your patch</li>
+        </ol>
+        <aside class="note ai" aria-label="Use of AI">
+          <p class="note-title" data-added>Use of AI</p>
+          <p><b>AI-option:</b> If you have used AI to find and patch the buffer overflow, you must provide <i>hand-written</i> answers to the following questions. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Note: you can ask AI to provide answers to the learning questions below.</p>
+          <ol type="a">
+            <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?</li>
+            <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers</li>
+            <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <code>prompts.txt</code> in the "AI" folder.</li>
+            <li>Learning question: What are all the possible buffers in this code that may be vulnerable to a buffer overflow?</li>
+            <li>Learning question: Which out of these buffers depend on user input?</li>
+            <li>Learning question: What is user input in case of a Web server? How do you "send a user input" to the Web server?</li>
+            <li>Learning question: How long at the minimum did user input need to be to crash the server? How was this calculated?</li>
+          </ol>
+        </aside>
+      </ol>
+      <li>Use the scripts described in the <a href="#submission">submission section</a> for creating a submission tarball.</li>
+      <h3 id="glitches">What can go wrong</h3>
+      <p>There are no known issues.</p>
+      <h2 id="extra">Extra Credit</h2>
+      <h3>Remote Execution</h3>
+      <p>The assigned task for this exercise is to simply crash <code>fhttpd</code> with an attack payload. However, it is possible to inject code via the payload and take over the application. Since <code>fhttpd</code> runs with root privileges, you can execute anything on the system if you manage to take over the program. For extra credit, do #1 and/or #2 below, and then #3:</p>
+      <ol>
+        <li>Create and successfully execute a remote execution exploit using the vulnerability in <code>fhttpd</code>. This could be as simple as writing a file to the system.</li>
+        <li>0wn the box: Create a remote shell you can send commands to, add a login user with root access, or some other reliable remote access facility.</li>
+        <li>Draft a short writeup describing the steps you took to create the exploit and what you learned in the process.</li>
+      </ol>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p><b>AI-option:</b> If you have used AI to find and patch the buffer overflow, you must provide <i>hand-written</i> answers to the following questions. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI-extra-credit" folder. Note: you can ask AI to provide answers to the learning questions below.</p>
+        <ol type="a">
+          <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?</li>
+          <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers</li>
+          <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <code>prompts.txt</code> in the "AI" folder.</li>
+          <li>Learning question: What does your remote exploit do?</li>
+          <li>Learning question: How did you create the remote shell?</li>
+          <li>Learning question: Your input needed to be encoded in a special way to pass it to the server. Ask AI to explain all the steps and note the steps in your answers. Just describing a step is sufficient. You do not have to provide the actual user input with the exploit on the hand-written part of your answer.</li>
+        </ol>
+      </aside>
+      <h2 id="submission">Submission Instructions</h2>
+      <p>For this exercise, you will submit a tarball containing your patch, memo, and exploit code. Use the script submit.sh in /root on the <code>server</code> host for creating and restoring those tarballs.</p>
+      <h2>submit.sh and restore.sh</h2>
+      <p><code>submit.sh</code> will back up:</p>
+      <ul>
+        <li>the source code directory <code>/usr/src/fhttpd/</code></li>
+        <li>
+          <p>everything in <code>/root/submission</code>, which should include:</p>
+          <ol>
+            <li><code>exploit.sh</code></li>
+            <li><code>payload</code></li>
+            <li>your memo</li>
+            <li>patch</li>
+          </ol>
+        </li>
+      </ul>
+      <p><code>restore.sh</code> will restore those files to their original locations, automatically overwriting whatever is there. Submit your tarball to your instructor.</p>
+    </article>
+  </div>
+</body>
+</html>

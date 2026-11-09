@@ -1,314 +1,387 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
-
-
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="index,nofollow">
-    
-       <title>Exploits: SQL Injection</title>
-       
-      <link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
-href="../../css//common.css">
-<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
-href="../../css//screen.css">
-   </head>
-<body>
+  <meta name="color-scheme" content="light dark">
+  <title>Exploits: SQL Injection</title>
+  <link rel="stylesheet" href="../../css/exercise.css">
+  <script src="../../js/exercise.js" defer></script>
+</head>
 
-  <div id="page" dir="ltr" lang="en">
-         <h1>Exploits: SQL Injection</h1>
-         <div class="author">Created by: Peter A. H. Peterson and Dr. Peter Reiher, UCLA {pahp, reiher}@ucla.edu</div>
-  </div>
-  
-      <div class="table-of-contents">
-	<div class="table-of-contents-heading">Contents</div>
-	<ol>
-            <li><a href="#overview">Overview</a></li>
-            <li>
-               <a href="#the-structured-query-language">The Structured Query Language</a>
-               <ol>
-                  <li><a href="#introduction-to-sql">Introduction to SQL</a></li>
-                  <li><a href="#sql-examples">SQL Examples</a></li>
-                  <li><a href="#sql-injection">SQL Injection</a></li>
-                  <li><a href="#input-validation-and-sanitization">Input Validation and Sanitization</a></li>
-                  <li><a href="#the-old-way----escaping-input-for-sql">The Old Way -- Escaping Input for SQL</a></li>
-                  <li><a href="#prepared-statements">Prepared Statements</a></li>
-                  <li><a href="#additional-reading-on-sql-injection">Additional Reading on SQL Injection</a></li>
-               </ol>
-            </li>
-            <li>
-               <a href="#software-tools">Software Tools</a>
-               <ol>
-                  <li><a href="#diff-and-patch-see-differences-and-create-source-patches">diff and patch: see differences and create source patches</a></li>
-                  <li><a href="#mysql-command-line-mysql-client">mysql: command line mysql client</a></li>
-               </ol>
-            </li>
-            <li>
-               <a href="#assignment-instructions">Assignment Instructions</a>
-               <ol>
-                  <li><a href="#setup">Setup</a></li>
-                  <li>
-                     <a href="#tasks">Tasks</a>
-                     <ol>
-                        <li><a href="#frobozzco-community-credit-union">FrobozzCo Community Credit Union</a></li>
-                     </ol>
-                  </li>
-               </ol>
-            </li>
-            <li>
-               <a href="#submission-instructions">Submission Instructions</a>
-               <ol>
-                  <li><a href="#submit.sh-and-restore.sh">submit.sh and restore.sh</a></li>
-               </ol>
-            </li>
-         </ol>
-      </div>
-  <p>
-    <span class="anchor" id="overview"></span> 
-      <h1 id="overview">Overview</h1>
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <a class="back" href="../../index.html">&larr; SPHERE Shared Education Materials</a>
+      <p class="eyebrow">Exploits</p>
+      <h1>SQL Injection</h1>
+      <p class="author">Created by: Peter A. H. Peterson and Dr. Peter Reiher, UCLA {pahp, reiher}@ucla.edu</p>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <nav aria-label="Contents">
+        <h2 class="toc-title">Contents</h2>
+        <ol>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#the-structured-query-language">The Structured Query Language</a>
+            <ol>
+              <li><a href="#introduction-to-sql">Introduction to SQL</a></li>
+              <li><a href="#sql-examples">SQL Examples</a></li>
+              <li><a href="#sql-injection">SQL Injection</a></li>
+              <li><a href="#input-validation-and-sanitization">Input Validation and Sanitization</a></li>
+              <li><a href="#the-old-way----escaping-input-for-sql">The Old Way -- Escaping Input for SQL</a></li>
+              <li><a href="#prepared-statements">Prepared Statements</a></li>
+              <li><a href="#additional-reading-on-sql-injection">Additional Reading on SQL Injection</a></li>
+            </ol>
+          </li>
+          <li><a href="#software-tools">Software Tools</a>
+            <ol>
+              <li><a href="#diff-and-patch-see-differences-and-create-source-patches">diff and patch: see differences and create source patches</a></li>
+              <li><a href="#mysql-command-line-mysql-client">mysql: command line mysql client</a></li>
+            </ol>
+          </li>
+          <li><a href="#assignment-instructions">Assignment Instructions</a>
+            <ol>
+              <li><a href="#setup">Setup</a></li>
+              <li><a href="#tasks">Tasks</a>
+                <ol>
+                  <li><a href="#frobozzco-community-credit-union">FrobozzCo Community Credit Union</a></li>
+                </ol>
+              </li>
+            </ol>
+          </li>
+          <li><a href="#submission-instructions">Submission Instructions</a>
+            <ol>
+              <li><a href="#submit.sh-and-restore.sh">submit.sh and restore.sh</a></li>
+            </ol>
+          </li>
+        </ol>
+      </nav>
+    </details>
+
+    <article>
+      <h2 id="overview">Overview</h2>
       <p>The purpose of this exercise is to introduce you to SQL Injection attacks and give you a first-hand opportunity to see them in source code, exploit them, and patch them. After successfully completing this exercise, you will be able to:</p>
-      <ol style="list-style-type: decimal">
-         <li>Accurately identify and describe SQL Injection attacks</li>
-         <li>Identify SQL Injection vulnerabilities in a preexisting PHP/MySQL application</li>
-         <li>Understand how vulnerabilities can lead to unauthorized access to private data</li>
-         <li>Repair simple examples of these security flaws</li>
-         <li>Author memos describing in detail your findings and code changes</li>
+      <ol>
+        <li>Accurately identify and describe SQL Injection attacks</li>
+        <li>Identify SQL Injection vulnerabilities in a preexisting PHP/MySQL application</li>
+        <li>Understand how vulnerabilities can lead to unauthorized access to private data</li>
+        <li>Repair simple examples of these security flaws</li>
+        <li>Author memos describing in detail your findings and code changes</li>
       </ol>
       <p>You should be familiar with the Unix command line, POSIX permissions, and basic programming. The exercise will use PHP and SQL, but at introductory levels.</p>
-      <h1 id="the-structured-query-language">The Structured Query Language</h1>
-      <h2 id="introduction-to-sql">Introduction to SQL</h2>
-      <p>SQL -- or the Structured Query Language -- &quot;is a computer language designed for the retrieval and management of data in relational database management systems, database schema creation and modification, and database object access control management&quot;[<a href="http://en.wikipedia.org/wiki/SQL">2</a>]. Put simply, it's a database query language. SQL (pronounced &quot;sequel&quot; or S-Q-L) has been around since the 1970s, and was standardized by ANSI in 1986. SQL is ubiquitous -- practically all current relational databases in use today speak some vendor-specific variant of SQL, and most enterprise web applications use a relational database on the back end. Furthermore, scripting languages like Python, Perl, Ruby, and PHP that are often used for web development and all have robust, easy to use SQL modules. In fact, the combination of <strong>L</strong>inux servers, the <strong>A</strong>pache http daemon, the <strong>M</strong>ySQL relational database, and the <strong>P</strong>HP scripting language are so popular for web development today that it has its own acronym -- <strong>LAMP</strong>.</p>
+      <h2 id="the-structured-query-language">The Structured Query Language</h2>
+      <h3 id="introduction-to-sql">Introduction to SQL</h3>
+      <p>SQL -- or the Structured Query Language -- "is a computer language designed for the retrieval and management of data in relational database management systems, database schema creation and modification, and database object access control management"[<a href="http://en.wikipedia.org/wiki/SQL">2</a>]. Put simply, it's a database query language. SQL (pronounced "sequel" or S-Q-L) has been around since the 1970s, and was standardized by ANSI in 1986. SQL is ubiquitous -- practically all current relational databases in use today speak some vendor-specific variant of SQL, and most enterprise web applications use a relational database on the back end. Furthermore, scripting languages like Python, Perl, Ruby, and PHP that are often used for web development and all have robust, easy to use SQL modules. In fact, the combination of <strong>L</strong>inux servers, the <strong>A</strong>pache http daemon, the <strong>M</strong>ySQL relational database, and the <strong>P</strong>HP scripting language are so popular for web development today that it has its own acronym -- <strong>LAMP</strong>.</p>
       <p>Dedicated database servers are valuable because they free programmers from the task of creating customized data storage systems from scratch (which are likely to have bugs and shortcomings). SQL serves as a common language for many database systems, allowing programmers to ignore most details of the specific database system in use (e.g., MySQL, Oracle, PostgreSQL, etc.). Overall, this modularity improves performance and makes maintenance and portability easier.</p>
       <p>Additionally, general-purpose database systems like MySQL are a win because the performance critical code is written in a fast language like C or C++, while applications using the database can be created with a slower, user-friendly scripting language. This is especially important when databases contain millions of entries because a database written in a relatively slow scripting language would be prohibitively expensive from a computational and time perspective. SQL servers can run on the same machine that serves the application, or they can be accessed via the network, allowing a web frontend and database backend to operate on separate machines. This flexibility can enable more efficient use of computing resources and can add other other benefits, such as easier backups.</p>
-      <h2 id="sql-examples">SQL Examples</h2>
-      <p>For example, an online retailer might have a database table for all their <strong>inventory</strong> with the columns <strong>product number, name, price</strong>, and number in <strong>stock</strong>. The programmer can craft a database query requesting all products whose <strong>name</strong>s' second letter is an &quot;x&quot; like so:</p>
-      <pre><code>SELECT * FROM inventory WHERE name LIKE &#39;_x%&#39;;</code></pre>
-      <div class="infobox">
-         <p><img src="idea.png" /> In SQL, an underscore ( _ ) matches any single character, while a percent ( % ) matches any sequence of characters (like * in DOS and UNIX)</p>
+      <h3 id="sql-examples">SQL Examples</h3>
+      <p>For example, an online retailer might have a database table for all their <strong>inventory</strong> with the columns <strong>product number, name, price</strong>, and number in <strong>stock</strong>. The programmer can craft a database query requesting all products whose <strong>name</strong>s' second letter is an "x" like so:</p>
+      <div class="code">
+        <pre><code>SELECT * FROM inventory WHERE name LIKE '_x%';</code></pre>
       </div>
+      <aside class="note tip">
+        <p>In SQL, an underscore ( _ ) matches any single character, while a percent ( % ) matches any sequence of characters (like * in DOS and UNIX)</p>
+      </aside>
       <p>We could also perform a query filtering out the 10 items with the cheapest <strong>price</strong>:</p>
-      <pre><code>SELECT * FROM inventory ORDER BY price ASC LIMIT 10;</code></pre>
-      <div class="infobox">
-         <p><img src="idea.png" /> In SQL, &quot;ORDER BY foo ASC&quot; sorts by the values in the column 'foo', ascending (least to greatest). Using DESC sorts from greatest to least. &quot;LIMIT N&quot; limits the result to N items (after the ordering clause).</p>
+      <div class="code">
+        <pre><code>SELECT * FROM inventory ORDER BY price ASC LIMIT 10;</code></pre>
       </div>
+      <aside class="note tip">
+        <p>In SQL, "ORDER BY foo ASC" sorts by the values in the column 'foo', ascending (least to greatest). Using DESC sorts from greatest to least. "LIMIT N" limits the result to N items (after the ordering clause).</p>
+      </aside>
       <p>We could also ask for just the names of items whose price is greater than 100:</p>
-      <pre><code>SELECT name FROM inventory WHERE price &gt; 100;</code></pre>
+      <div class="code">
+        <pre><code>SELECT name FROM inventory WHERE price &gt; 100;</code></pre>
+      </div>
       <p>SQL results are typically returned to the programming language as a list (array) or similar data structure. The programmer can then work with the list in her favorite language, make further queries, or display the data in some way. In executing queries like this, the SQL database -- not the application -- performs the selection, filtering, and alphabetization. Not having to write new code to do this (and more) saves application developers a tremendous amount of time.</p>
-      <h2 id="sql-injection">SQL Injection</h2>
+      <h3 id="sql-injection">SQL Injection</h3>
       <p>Because small flaws can often be leveraged into much larger exploits, simple programming mistakes and omissions often result in unexpected negative security effects. For example, PHP is every bit as vulnerable to failures of <strong>input validation</strong> such as filesystem and directory traversal exploits as are Perl and Python because these vulnerabilities are a result of system semantics and the necessity of programs to be capable of performing general purpose tasks like reading files.</p>
       <p>Poorly written applications that interface with SQL are no different. A common class of attacks are called <strong>SQL injection attacks</strong> which -- like directory traversal and buffer overflow vulnerabilities -- are the result of not properly <strong>validating input</strong> and implicitly granting applications privilege they do not require. In this case, the non-validated input actually contains SQL statements and relies on the application to naively insert the user input into the application's own request.</p>
       <p>For example, imagine a fatally flawed web interface for the Social Security Administration where you enter your Social Security number (123006789) and the system displays a summary of your account and personal information. Using MySQL and PHP, the application might include code like this:</p>
-      <pre><code>$ssn = $_POST[&#39;ssn&#39;];                                      // get ssn from web form POST data
-$query = &quot;SELECT * FROM personal WHERE ssn LIKE &#39;$ssn&#39;&quot;;   // construct query (notice embedded $ssn variable)
+      <div class="code">
+        <pre><code>$ssn = $_POST['ssn'];                                      // get ssn from web form POST data
+$query = "SELECT * FROM personal WHERE ssn LIKE '$ssn'";   // construct query (notice embedded $ssn variable)
 $result = mysqli_query($query);                             // execute query
-echo &quot;$result\n&quot;;                                          // output result</code></pre>
+echo "$result\n";                                          // output result</code></pre>
+      </div>
       <p>If the value for $ssn contained 123006789, the application would construct the following SQL query and execute it:</p>
-      <pre><code>SELECT * FROM personal WHERE ssn LIKE &#39;123006789&#39;</code></pre>
+      <div class="code">
+        <pre><code>SELECT * FROM personal WHERE ssn LIKE '123006789'</code></pre>
+      </div>
       <p>The result would be your personal data.</p>
       <p>Now imagine that instead of entering <em>your</em> Social Security number, you enter <strong>%</strong> -- the <strong>SQL wildcard</strong> matching anything. The application foolishly takes your input as valid and blithely plugs it in to the SQL statement:</p>
-      <pre><code>SELECT * FROM personal WHERE ssn LIKE &#39;%&#39;</code></pre>
+      <div class="code">
+        <pre><code>SELECT * FROM personal WHERE ssn LIKE '%'</code></pre>
+      </div>
       <p>This would return the personal information of everyone in the table with a Social Security number!</p>
       <p>Even worse, if the user entered the following input into the SSN field</p>
       <p><code>'; DROP TABLE personal</code></p>
       <p>... the constructed query would be:</p>
-      <pre><code>SELECT * FROM personal WHERE ssn LIKE &#39;&#39;; DROP TABLE personal</code></pre>
-      <p>The semicolon ( ; ) character separates individual SQL statements and &quot;DROP TABLE tablename&quot; is how database tables are deleted. Thus -- if not for a restriction in PHP applications -- this could result in the deletion the entire <code>personal</code> table from the database! (XKCD had a <a href="http://www.explainxkcd.com/wiki/index.php/327:_Exploits_of_a_Mom">funny comic about this very issue</a>.)</p>
-      <h2 id="input-validation-and-sanitization">Input Validation and Sanitization</h2>
+      <div class="code">
+        <pre><code>SELECT * FROM personal WHERE ssn LIKE ''; DROP TABLE personal</code></pre>
+      </div>
+      <p>The semicolon ( ; ) character separates individual SQL statements and "DROP TABLE tablename" is how database tables are deleted. Thus -- if not for a restriction in PHP applications -- this could result in the deletion the entire <code>personal</code> table from the database! (XKCD had a <a href="http://www.explainxkcd.com/wiki/index.php/327:_Exploits_of_a_Mom">funny comic about this very issue</a>.)</p>
+      <h3 id="input-validation-and-sanitization">Input Validation and Sanitization</h3>
       <p>As we can see, this is a malicious SQL statement and a dangerously negligent application. Using the LIKE operator is a subtle example of <strong>unnecessary privilege</strong>. Because everyone has a unique Social Security number, there is <strong>no chance</strong> that a <a href="http://en.wikipedia.org/wiki/Glob()">glob match</a> (enabled by LIKE in SQL) will be required. At the very least, the above code should have used the exact match test = (equals sign) instead of LIKE, which would have returned an error when it was given a wildcard to match. The database also has a permissions problem, because the application accessing the database does not need to be able to use the DROP TABLE command. (Database users have permissions similar to users on a filesystem -- but the permissions still need to be configured properly.)</p>
       <p>More fundamentally, this application is fatally flawed due to the total lack of <strong>input validation</strong>. Since all Social Security numbers are 9 digits, there is <strong>no chance</strong> that a legitimate user would ever need to enter anything but 9 digits into the SSN field. It is trivial to first check the contents of a variable before using it -- making sure that it contains only numbers or letters, etc. -- this is called <strong>input validation</strong>. In this way, punctuation, letters, and everything but numbers would cause an error before the SQL statement was even assembled.</p>
       <p>However, making sure that the SSN contains just numbers or letters only works if you have purely numerical or alphabetical data. Unfortunately, it's not always possible to use this approach, because many fields require letters, letters and numbers, or even arbitrary characters that have special meaning in SQL like the single quote ( ' ) and semicolon ( ; ) that we used for our DROP TABLES statement. For example, consider a web forum where users' posts are stored in a database. Since posts can contain virtually any input, the database must be able to safely handle arbitrary input. Instead of <strong>validating</strong> our input, we want a way to <strong>sanitize</strong> it -- to make it safe.</p>
-      <h2 id="the-old-way----escaping-input-for-sql">The Old Way -- Escaping Input for SQL</h2>
-      <div class="warning">
-         <p><img src="alert.png" /> <strong>Note:</strong> While manual validation and escaping of input is the classic approach to this problem, <em>it's no longer considered a best practice</em>. It's better to use prepared statements (see the next section). It is possible to bypass basic string escaping by using an <a href="http://stackoverflow.com/questions/5741187/sql-injection-that-gets-around-mysql-real-escape-string">input that can be dangerous and does not require escaping to be valid</a>, such as <code>1 OR 1=1</code>, or fiddling with character encoding. Prepared statements also give a performance boost, because escaping input is fairly inefficient!</p>
-         Again, this material is left here for informational purposes only (do not use it for this assignment).
+      <h3 id="the-old-way----escaping-input-for-sql">The Old Way -- Escaping Input for SQL</h3>
+      <aside class="note warning">
+        <p><strong>Note:</strong> While manual validation and escaping of input is the classic approach to this problem, <em>it's no longer considered a best practice</em>. It's better to use prepared statements (see the next section). It is possible to bypass basic string escaping by using an <a href="http://stackoverflow.com/questions/5741187/sql-injection-that-gets-around-mysql-real-escape-string">input that can be dangerous and does not require escaping to be valid</a>, such as <code>1 OR 1=1</code>, or fiddling with character encoding. Prepared statements also give a performance boost, because escaping input is fairly inefficient!</p>
+        <p>Again, this material is left here for informational purposes only (do not use it for this assignment).</p>
+      </aside>
+      <p>The classic mitigation to this problem used to be validation in conjunction with something called "string escaping." Validation was performed using functions to test data for various properties, such as being integers, floating point numbers, or alphanumeric (perhaps with various allowed punctuation). This is one of the sources of strange restrictions on what characters can be used in passwords for various services.</p>
+      <p>If a string contains special characters, we need a way to inform a parser (in this case the SQL server) that the characters should be treated simply as regular characters, not as characters with special meaning in SQL. Traditionally, this is done by putting a backslash ( ) in front of the each special character. For example, in most languages, to include a double quote character ( " ) in a double-quoted string, we can usually use the following syntax:</p>
+      <div class="code">
+        <pre><code>escaped = "here is a double quote: \" and now i'll end the string"</code></pre>
       </div>
-      <p>The classic mitigation to this problem used to be validation in conjunction with something called &quot;string escaping.&quot; Validation was performed using functions to test data for various properties, such as being integers, floating point numbers, or alphanumeric (perhaps with various allowed punctuation). This is one of the sources of strange restrictions on what characters can be used in passwords for various services.</p>
-      <p>If a string contains special characters, we need a way to inform a parser (in this case the SQL server) that the characters should be treated simply as regular characters, not as characters with special meaning in SQL. Traditionally, this is done by putting a backslash (  ) in front of the each special character. For example, in most languages, to include a double quote character ( &quot; ) in a double-quoted string, we can usually use the following syntax:</p>
-      <pre><code>escaped = &quot;here is a double quote: \&quot; and now i&#39;ll end the string&quot;</code></pre>
-      <p>In essence, the backslash says &quot;don't end the string here -- just treat it as a regular double quote character&quot;.</p>
-      <p>Most languages have functions that will sanitize or &quot;escape&quot; strings being used in MySQL requests. In PHP, the function is <code>mysqli_real_escape_string(foo)</code>. It will take the string <code>foo</code> and return an escaped version. For example, if we did the following:</p>
-      <pre><code>$ssn_escaped = mysqli_real_escape_string($ssn);</code></pre>
+      <p>In essence, the backslash says "don't end the string here -- just treat it as a regular double quote character".</p>
+      <p>Most languages have functions that will sanitize or "escape" strings being used in MySQL requests. In PHP, the function is <code>mysqli_real_escape_string(foo)</code>. It will take the string <code>foo</code> and return an escaped version. For example, if we did the following:</p>
+      <div class="code">
+        <pre><code>$ssn_escaped = mysqli_real_escape_string($ssn);</code></pre>
+      </div>
       <p>... <code>$ssn_escaped</code> would contain:</p>
-      <pre><code>\&#39;\; DROP TABLE personal</code></pre>
-      <div class="infobox">
-         <p><img src="idea.png" /> The function <code>mysqli_real_escape_string()</code> will only function properly ''after'' a connection to a mysql server has been made. If <code>mysqli_real_escape_string()</code> seems to be returning empty strings, make sure that its invocations follow a connection to a mysql server.</p>
+      <div class="code">
+        <pre><code>\'\; DROP TABLE personal</code></pre>
       </div>
+      <aside class="note tip">
+        <p>The function <code>mysqli_real_escape_string()</code> will only function properly ''after'' a connection to a mysql server has been made. If <code>mysqli_real_escape_string()</code> seems to be returning empty strings, make sure that its invocations follow a connection to a mysql server.</p>
+      </aside>
       <p>Since the special characters are now escaped with the backslash, they'll be treated as regular letters -- not special SQL tokens: Thus, our original query would become:</p>
-      <pre><code>SELECT * FROM personal WHERE ssn LIKE &#39;\&#39;\; DROP TABLE personal&#39;</code></pre>
+      <div class="code">
+        <pre><code>SELECT * FROM personal WHERE ssn LIKE '\'\; DROP TABLE personal'</code></pre>
+      </div>
       <p>...and of course, there is no ssn like <code>\'\; DROP TABLE personal</code>. Running this query wouldn't drop the table, it would simply return an error.</p>
       <p>Errors due to lack of input validation and sanitization happen constantly, not just with SQL. The <em>only</em> response is to write code with the least possible privilege and to perform comprehensive and correct validation (or sanitization) on all input.</p>
-      <div class="infobox">
-         <p><img src="idea.png" />For this assignment, you'll use Prepared Statements instead of string escaping. Read on!</p>
-      </div>
-      <h2 id="prepared-statements">Prepared Statements</h2>
+      <aside class="note tip">
+        <p>For this assignment, you'll use Prepared Statements instead of string escaping. Read on!</p>
+      </aside>
+      <h3 id="prepared-statements">Prepared Statements</h3>
       <p>Prepared statements are an improved approach for protecting against SQL injection that, by changing how SQL queries are constructed, make validation and sanitization <em>part of the query process</em>. Thanks to prepared statements, manual validation and sanitization are not necessary.</p>
       <p>Prepared statements work by telling the database what a query will look like, using placeholders for inputs that are then bound to the query later. SQL injection works when the database can't differentiate between intended operations in the query and malicious input. Because prepared statements send the query and inputs to the database separately, SQL injection becomes completely mitigated with this approach. Also, since the database knows the types of the various table items, it can validate and escape data automatically -- minimizing the chance some edge case is overlooked and leads to a security leak. Prepared statements can also improve the performance of queries that are run multiple times. We will use the mysqli PHP library to use prepared statements.</p>
       <p>We need to connect to our database before starting:</p>
-      <pre><code>$mysqli = new mysqli(&quot;localhost&quot;, &quot;username&quot;, &quot;password&quot;, &quot;database&quot;);</code></pre>
+      <div class="code">
+        <pre><code>$mysqli = new mysqli("localhost", "username", "password", "database");</code></pre>
+      </div>
       <p>The first step is to create the statement. This is where we specify what our query will look like, with placeholders for the inputs. Looking at the example above, the only input is $ssn, so we can prepare the statement like this:</p>
-      <pre><code>$stmt = $mysqli-&gt;prepare(&quot;SELECT * FROM personal WHERE ssn LIKE (?)&quot;); </code></pre>
-      <p>The second step is binding the input to the query. We need to specify the expected type for each input (as a single string), along with each of the inputs. Types are specified with &quot;d&quot; for decimal, &quot;i&quot; for integer, &quot;s&quot; for string, and &quot;b&quot; for boolean. Assuming ssn is is a string:</p>
-      <pre><code>$stmt-&gt;bind_param(&quot;s&quot;, $ssn);</code></pre>
+      <div class="code">
+        <pre><code>$stmt = $mysqli-&gt;prepare("SELECT * FROM personal WHERE ssn LIKE (?)");</code></pre>
+      </div>
+      <p>The second step is binding the input to the query. We need to specify the expected type for each input (as a single string), along with each of the inputs. Types are specified with "d" for decimal, "i" for integer, "s" for string, and "b" for boolean. Assuming ssn is is a string:</p>
+      <div class="code">
+        <pre><code>$stmt-&gt;bind_param("s", $ssn);</code></pre>
+      </div>
       <p>If we had an additional parameter, such as age, we bind the parameters like this:</p>
-      <pre><code>$stmt-&gt;bind_param(&quot;si&quot;, $ssn, $age);</code></pre>
+      <div class="code">
+        <pre><code>$stmt-&gt;bind_param("si", $ssn, $age);</code></pre>
+      </div>
       <p>The third step is to execute the query:</p>
-      <pre><code>$stmt-&gt;execute();</code></pre>
+      <div class="code">
+        <pre><code>$stmt-&gt;execute();</code></pre>
+      </div>
       <p>If we want to run the query multiple times with different input, we only need to re-run steps two and three.</p>
       <p>To read output from the statement, we use the <code>get_result()</code> method, which reads one result at a time.</p>
-      <pre><code>$res = $stmt-&gt;get_result();</code></pre>
+      <div class="code">
+        <pre><code>$res = $stmt-&gt;get_result();</code></pre>
+      </div>
       <p>To get an associative array with the row names as keys:</p>
-      <pre><code>$row = $res-&gt;fetch_assoc();</code></pre>
+      <div class="code">
+        <pre><code>$row = $res-&gt;fetch_assoc();</code></pre>
+      </div>
       <p>If we have multiple results, we can iterate over them like this:</p>
-      <pre><code>$result = $stmt-&gt;get_result();
+      <div class="code">
+        <pre><code>$result = $stmt-&gt;get_result();
 while($row = $result-&gt;fetch_assoc())</code></pre>
+      </div>
       <p>Then we can read the result:</p>
-      <pre><code>printf(&quot;Name: %s, DoB: %s\n&quot;, $row[&#39;name&#39;], $row[&#39;dob&#39;]);</code></pre>
-      <div class="infobox">
-         <p><img src="idea.png" /> <strong>Note</strong>: the existing code returns results as an <em>array</em>, while mysqli returns results as an <em>associative array</em> (sometimes called a <em>dictionary</em> or in Perl a <em>hash</em>).Arrays are indexed by integers, but associative arrays are indexed by keys, which can be arbitrary string values. So, with the old code you might do something like this:</p>
-         <pre><code>$id = $row[0]; </code></pre>
-         <p>... but in the new code you would do something like this:</p>
-         <pre><code>$id = $row[&#39;id&#39;];</code></pre>
-         <p>You can also embed associative arrays in strings by surrounding them with curly braces:</p>
-         <pre><code>echo &quot;The ID is: {$row[&#39;id&#39;]}&quot;;</code></pre>
+      <div class="code">
+        <pre><code>printf("Name: %s, DoB: %s\n", $row['name'], $row['dob']);</code></pre>
       </div>
-      <div class="warning">
-         <p><img src="alert.png" /> The above examples are simplified -- make sure to check for errors! See the <a href="http://php.net/manual/en/book.mysqli.php">mysqli documentation</a> for more complete examples.</p>
-      </div>
-      <h2 id="additional-reading-on-sql-injection">Additional Reading on SQL Injection</h2>
+      <aside class="note tip">
+        <p><strong>Note</strong>: the existing code returns results as an <em>array</em>, while mysqli returns results as an <em>associative array</em> (sometimes called a <em>dictionary</em> or in Perl a <em>hash</em>).Arrays are indexed by integers, but associative arrays are indexed by keys, which can be arbitrary string values. So, with the old code you might do something like this:</p>
+        <div class="code">
+          <pre><code>$id = $row[0];</code></pre>
+        </div>
+        <p>... but in the new code you would do something like this:</p>
+        <div class="code">
+          <pre><code>$id = $row['id'];</code></pre>
+        </div>
+        <p>You can also embed associative arrays in strings by surrounding them with curly braces:</p>
+        <div class="code">
+          <pre><code>echo "The ID is: {$row['id']}";</code></pre>
+        </div>
+      </aside>
+      <aside class="note warning">
+        <p>The above examples are simplified -- make sure to check for errors! See the <a href="http://php.net/manual/en/book.mysqli.php">mysqli documentation</a> for more complete examples.</p>
+      </aside>
+      <h3 id="additional-reading-on-sql-injection">Additional Reading on SQL Injection</h3>
       <p>For more information, see these articles:</p>
       <ul>
-         <li><a href="http://en.wikipedia.org/wiki/SQL">SQL</a> on Wikipedia</li>
-         <li><a href="http://en.wikipedia.org/wiki/SQL_injection">SQL Injection</a> on Wikipedia</li>
-         <li><a href="http://shiflett.org/articles/sql-injection">SQL Injection</a> article by Chris Shiflett</li>
-         <li><a href="https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet">OWASP SQL Injection Prevention Cheat Sheet</a></li>
+        <li><a href="http://en.wikipedia.org/wiki/SQL">SQL</a> on Wikipedia</li>
+        <li><a href="http://en.wikipedia.org/wiki/SQL_injection">SQL Injection</a> on Wikipedia</li>
+        <li><a href="http://shiflett.org/articles/sql-injection">SQL Injection</a> article by Chris Shiflett</li>
+        <li><a href="https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet">OWASP SQL Injection Prevention Cheat Sheet</a></li>
       </ul>
       <p>... for additional information, search online -- numerous resources and SQL tutorials exist.</p>
-      <h1 id="software-tools">Software Tools</h1>
+      <h2 id="software-tools">Software Tools</h2>
       <p>This section will describe some tools you may need to complete this exercise.</p>
-      <h2 id="diff-and-patch-see-differences-and-create-source-patches">diff and patch: see differences and create source patches</h2>
-      <p>In this exercise, you'll be fixing security vulnerabilities in a few simple programs. However, instead of your whole program, we only want the <em>differences</em> between your new, fixed, program, and the original. A file which contains only the <em>changes</em> between two revisions of a program is called a &quot;patch.&quot; Fortunately, creating patch files for single-file source programs is easy.</p>
+      <h3 id="diff-and-patch-see-differences-and-create-source-patches">diff and patch: see differences and create source patches</h3>
+      <p>In this exercise, you'll be fixing security vulnerabilities in a few simple programs. However, instead of your whole program, we only want the <em>differences</em> between your new, fixed, program, and the original. A file which contains only the <em>changes</em> between two revisions of a program is called a "patch." Fortunately, creating patch files for single-file source programs is easy.</p>
       <p>To see the differences between two files on Unix, you use the <code>diff</code> utility:</p>
-      <pre><code>$ diff one.txt two.txt</code></pre>
-      <p>Another useful tool is called <code>patch</code>. <code>patch</code> takes properly-formatted <code>diff</code> output, and applies the changes to the original file. <code>diff</code> can generate this output with a few options:</p>
-      <pre><code>$ diff -u oldcode.c newcode.c &gt; fixed.patch</code></pre>
-      <div class="infobox">
-         <p><img src="idea.png" /> <code>diff</code> has many options to modify its behavior (see <code>man diff</code> for more information).</p>
+      <div class="code">
+        <pre><code>$ diff one.txt two.txt</code></pre>
       </div>
+      <p>Another useful tool is called <code>patch</code>. <code>patch</code> takes properly-formatted <code>diff</code> output, and applies the changes to the original file. <code>diff</code> can generate this output with a few options:</p>
+      <div class="code">
+        <pre><code>$ diff -u oldcode.c newcode.c &gt; fixed.patch</code></pre>
+      </div>
+      <aside class="note tip">
+        <p><code>diff</code> has many options to modify its behavior (see <code>man diff</code> for more information).</p>
+      </aside>
       <p>This above options for <code>diff</code> will create a patch with the filenames and all necessary information that the <code>patch</code> program requires. This makes patching as simple as executing:</p>
-      <pre><code>$ patch oldcode.c -i fixed.patch -o new-patched-file.c</code></pre>
+      <div class="code">
+        <pre><code>$ patch oldcode.c -i fixed.patch -o new-patched-file.c</code></pre>
+      </div>
       <p>... and this will create a patched version of the program that you can test.</p>
       <p>When submitting a patch file, it is <strong>highly recommended</strong> that you create the patch and then <strong>test it</strong> before submitting it to make sure that it works. You will not get any points for code that does not execute or compile in the exercise environment.</p>
       <p>If you're having permissions problems, consider switching to root by executing <code>sudo su -</code> or change the permissions of the source directory in question.</p>
-      <h2 id="mysql-command-line-mysql-client">mysql: command line mysql client</h2>
+      <h3 id="mysql-command-line-mysql-client">mysql: command line mysql client</h3>
       <p>When attackers try to create SQL injection attacks, they often know very little about the the database schema. In our case, we have hands-on access to the database, so this should make the job of developing injection attacks easier. This is where the MySQL command-line client comes in.</p>
       <p>To use the MySQL command line on the server, run a command like this:</p>
-      <pre><code>$ mysql -uroot -pzubaz99</code></pre>
+      <div class="code">
+        <pre><code>$ mysql -uroot -pzubaz99</code></pre>
+      </div>
       <p>... <code>root</code> is the user and <code>zubaz99</code> is the password -- and the lack of spaces is important.</p>
-      <p>This is essentially an SQL &quot;shell&quot; and gives you root access to the entire database. Once you get logged in to the database, you need to select the database to use. Then, you can make selections from the database:</p>
-      <pre><code>MariaDB&gt; use fccu; # selects fccu database
+      <p>This is essentially an SQL "shell" and gives you root access to the entire database. Once you get logged in to the database, you need to select the database to use. Then, you can make selections from the database:</p>
+      <div class="code">
+        <pre><code>MariaDB&gt; use fccu; # selects fccu database
 MariaDB&gt; select * from accounts; # print all accounts information</code></pre>
-<p>Something that you may notice out of the ordinary is that the command line will prompt you with MariaDB instead of MySQL. Newer versions of Debian/Ubuntu are resorting to MariaDB instead of MySQL, which is a fully backwards compatible, community-made version of MySQL. MariaDB is faster and safer than MySQL, which is why MySQL was overwritten by MariaDB in newer versions of Ubuntu/Debian.</p>
-<p>The name "MariaDB" in the command line will be the only change you will notice with this lab. All SQL commands will remain compatible, but this lab will continue to use <tt>mysql</tt> on the command line instead of <tt>mariadb</tt>.</p>
+      </div>
+      <p>Something that you may notice out of the ordinary is that the command line will prompt you with MariaDB instead of MySQL. Newer versions of Debian/Ubuntu are resorting to MariaDB instead of MySQL, which is a fully backwards compatible, community-made version of MySQL. MariaDB is faster and safer than MySQL, which is why MySQL was overwritten by MariaDB in newer versions of Ubuntu/Debian.</p>
+      <p>The name "MariaDB" in the command line will be the only change you will notice with this lab. All SQL commands will remain compatible, but this lab will continue to use <code>mysql</code> on the command line instead of <code>mariadb</code>.</p>
       <p>If you scroll up, or limit the query, you'll see that <code>mysql</code> very nicely adds a title to each column -- this is the column name. So you could create a query like this to display all account information for accounts with an id greater than 50:</p>
-      <pre><code>MariaDB&gt; select * from accounts where id &gt; 50;</code></pre>
+      <div class="code">
+        <pre><code>MariaDB&gt; select * from accounts where id &gt; 50;</code></pre>
+      </div>
       <p>There are many online SQL tutorials -- including some on SQL Injection, so we won't cover more here.</p>
-      <div class="infobox">
-         <p><img src="idea.png" /> When trying to develop an SQL injection attack, you must consider the queries hard-coded into the script -- they are your starting point. You need to find a way to bend the query to your will -- you can't just start over with a query you like better. A good idea is to copy the SQL query from the script (or create one like it) into the mysql command line client and play around with changing it in controlled ways until you can get the result you want.</p>
-      </div>
-      <h1 id="assignment-instructions">Assignment Instructions</h1>
-  <p>You are the security administrator for FrobozzCo, a large corporation with a great many secrets. You have just come back from a much-needed four week vacation in West Shanbar, only to find that FrobozzCo has been having some serious security issues! In order to do everything you need, you've prepared a test environment on SPHERE with the necessary software installed.</p>
-
-  <h3 class="anchor" id="setup">Setup</h3>
-<ol>
-	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
-</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>sqli</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
-</li><li>After setting up the lab, access your <tt>sqli</tt> node. <p /></ol></ol><p />
-
-      <p />
+      <aside class="note tip">
+        <p>When trying to develop an SQL injection attack, you must consider the queries hard-coded into the script -- they are your starting point. You need to find a way to bend the query to your will -- you can't just start over with a query you like better. A good idea is to copy the SQL query from the script (or create one like it) into the mysql command line client and play around with changing it in controlled ways until you can get the result you want.</p>
+      </aside>
+      <h2 id="assignment-instructions">Assignment Instructions</h2>
+      <p>You are the security administrator for FrobozzCo, a large corporation with a great many secrets. You have just come back from a much-needed four week vacation in West Shanbar, only to find that FrobozzCo has been having some serious security issues! In order to do everything you need, you've prepared a test environment on SPHERE with the necessary software installed.</p>
+      <h4 id="setup">Setup</h4>
+      <ol type="1">
+        <li>If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.</li>
+        <li>
+          <p>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <code>sqli</code> as Lab name. Your topology will look like below:</p>
+          <p><img src="topo.png">.</p>
+        </li>
+        <li>After setting up the lab, access your <code>sqli</code> node.</li>
+      </ol>
       <p>Make sure that you save your work as you go. See the instructions in the <a href="#submission-instructions">submission section</a> of this exercise for information about save and restore scripts. Save any changes you make to the sourcecode, your patches, memos, etc. in your home directory.</p>
-      <div class="infobox">
-         <p><img src="idea.png" /> You will probably want to set up <a href="https://docs.sphere-testbed.net/experimentation/xdc/#reaching-an-xdc-via-ssh">port forwarding</a> for tunelling HTTP over ssh so you can test the web applications with a browser on your own desktop.</p>
-      </div>
-      <h2 id="tasks">Tasks</h2>
-      <h3 id="frobozzco-community-credit-union">FrobozzCo Community Credit Union</h3>
+      <aside class="note tip">
+        <p>You will probably want to set up <a href="https://docs.sphere-testbed.net/experimentation/xdc/#reaching-an-xdc-via-ssh">port forwarding</a> for tunelling HTTP over ssh so you can test the web applications with a browser on your own desktop.</p>
+      </aside>
+      <h3 id="tasks">Tasks</h3>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p>Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.</p>
+      </aside>
+      <h4 id="frobozzco-community-credit-union">FrobozzCo Community Credit Union</h4>
       <p>FrobozzCo has its own internal company credit union, FrobozzCo Community Credit Union (FCCU). FCCU has an Internet-accessible web-based application that allows employees to access their paychecks and pay bills via a money wiring system. There are very few bank employees, and they use a a special administrative interface that runs on a different system that is not network accessible. In true FrobozzCo fashion, the public banking software was written in house by the CTO's nephew (who is a nice kid but not the brightest candle on the cake).</p>
       <p>As it turns out, a <em>lot</em> of money has been disappearing from the credit union while you've been gone. It looks like someone has figured out how to force other accounts to wire money... to an anonymous bank account in the Cayman Islands! Worse yet, several employees have had serious identity theft problems of late -- clearly someone has access to personal information and you have a hunch it's all coming from this server. To top it all off, the company itself is showing a deficit of $32,767 and it looks like it was somehow drawn through FCCU.</p>
       <p>In a surprising display of foresight, your predecessor installed a network monitor watching the FCCU server. However, you are shocked to find out (from the network monitor and server logs) that <em>nobody</em> has logged into the server directly -- in fact, the only interaction that anyone has had with the server has come through the Internet facing web interface. It looks like insecure software is to blame, again.</p>
-      <p>You assume that there must be one or more vulnerabilities in the code that interfaces with the SQL database -- in the FCCU software, the directory, or both -- and that somehow a malicious user is able to make the system do something it's not supposed to, like write checks. Worse yet, it seems like the attacker has managed to view private information like social security numbers, birthdates, and so on. You've heard about a class of attacks called &quot;SQL Injection,&quot; and it seems likely that this is the kind of exploit being used.</p>
+      <p>You assume that there must be one or more vulnerabilities in the code that interfaces with the SQL database -- in the FCCU software, the directory, or both -- and that somehow a malicious user is able to make the system do something it's not supposed to, like write checks. Worse yet, it seems like the attacker has managed to view private information like social security numbers, birthdates, and so on. You've heard about a class of attacks called "SQL Injection," and it seems likely that this is the kind of exploit being used.</p>
       <p>Surprisingly, your boss agrees with you and instructs you to produce a one page memo, a <strong>detailed transcript</strong> demonstrating the exploit, and a patch for the software. Additionally, he also wants to know how to clean up this mess -- how severe is the compromise? How can we restore the system to a safe state?</p>
-      <h3>Tasks</h3>
-      <ol style="list-style-type: decimal">
-         <li>
-            Load your Exploits image in SPHERE.
-            <ul>
-               <li>The sourcecode is located at <code>/usr/lib/cgi-bin/FCCU.php</code></li>
-               <li>If you have set up <a href="https://docs.sphere-testbed.net/experimentation/port-forwarding/">ssh tunnelling</a> to port <code>80</code> via local port <code>8118</code>, the memo application can be accessed at <a href="http://localhost:8118/cgi-bin/FCCU.php">http://localhost:8118/cgi-bin/FCCU.php</a></li>
-            </ul>
-         </li>
-         <li>
-            Exercise a remote SQL-Injection vulnerability to perform these unauthorized tasks on the SQL server:
-            <ol style="list-style-type: decimal">
-               <li>Show how you can log into a single account without knowing any id numbers ahead of time.</li>
-               <li>Show how you can log into every account account (one at a time) without knowing any id numbers ahead of time.</li>
-               <li>Make some account (your choice) wire its total balance to the bank with routing number: <strong>314159265</strong> and account number: <strong>271828182845</strong></li>
-               <li>Explain why you can't create a new account or arbitrarily update account balances (or show that you can).</li>
-            </ol>
-         </li>
-         <li>Create an exploit transcript in the file <code>/root/submission/exploit.txt</code>, which should include your SQL injections (in order), short answers and any other information you think I should know.</li>
+      <h4>Tasks</h4>
+      <ol>
+        <li>
+          <p>Load your Exploits image in SPHERE.</p>
+          <ul>
+            <li>The sourcecode is located at <code>/usr/lib/cgi-bin/FCCU.php</code></li>
+            <li>If you have set up <a href="https://docs.sphere-testbed.net/experimentation/port-forwarding/">ssh tunnelling</a> to port <code>80</code> via local port <code>8118</code>, the memo application can be accessed at <a href="http://localhost:8118/cgi-bin/FCCU.php">http://localhost:8118/cgi-bin/FCCU.php</a></li>
+          </ul>
+        </li>
+        <li>
+          <p>Exercise a remote SQL-Injection vulnerability to perform these unauthorized tasks on the SQL server:</p>
+          <ol>
+            <li>Show how you can log into a single account without knowing any id numbers ahead of time.</li>
+            <li>Show how you can log into every account account (one at a time) without knowing any id numbers ahead of time.</li>
+            <li>Make some account (your choice) wire its total balance to the bank with routing number: <strong>314159265</strong> and account number: <strong>271828182845</strong></li>
+            <li>Explain why you can't create a new account or arbitrarily update account balances (or show that you can).</li>
+          </ol>
+        </li>
+        <li>Create an exploit transcript in the file <code>/root/submission/exploit.txt</code>, which should include your SQL injections (in order), short answers and any other information you think I should know.</li>
       </ol>
-      <div class="infobox">
-         <p><img src="idea.png" /> This is <strong>not</strong> an <em>executable</em> script, but should be a step-by-step &quot;walkthrough&quot; of the attack that a colleague could follow without assistance.</p>
-      </div>
-      <ol start="4" style="list-style-type: decimal">
-         <li>Fix the vulnerability in the FCCU application by adding input validation using prepared statements.</li>
-         <ul>
-            <li> <strong>Note:</strong> You will be using prepared statements anywhere where user input is possible. You will not be adding prepared statements solely in the login form.</li>
-            <li><span style="background-color: #e3e3e3; font-family: monospace;">addslashes()</span> and <span style="background-color: #e3e3e3; font-family: monospace;">mysql_real_escape_string()</span> are not acceptable.</li>
-         </ul>
-         <li>Create a patch against the original source.</li>
-         <li>
-            Quoting as little sourcecode as possible, write a ~1 page memo, including:
-            <ol style="list-style-type: decimal">
-               <li>A description of the security flaw in the FCCU application</li>
-               <li>A description of how you fixed the flaw. How does your fix solve the problem?</li>
-               <li>
-                  Considering the FCCU application alone, describe a recovery plan for the server, answering:
-                  <ol style="list-style-type: decimal">
-                     <li>How serious was this breach? Could attackers gain root access through this vulnerability?</li>
-                     <li>What should be done with the server in order to secure it?</li>
-                     <li>Include any other observations or thoughts you might have.</li>
-                  </ol>
-               </li>
-            </ol>
-         </li>
-         <li>
-            Store the following files in <code>/root/submission</code>:
-            <ol style="list-style-type: decimal">
-               <li>your memo</li>
-               <li>your exploit walkthrough (<code>exploit.txt</code>)</li>
-               <li>your patch</li>
-            </ol>
-         </li>
-         <li>Use the scripts described in the <a href="#submission-instructions">section</a> for creating a submission tarball.</li>
+      <aside class="note tip">
+        <p>This is <strong>not</strong> an <em>executable</em> script, but should be a step-by-step "walkthrough" of the attack that a colleague could follow without assistance.</p>
+      </aside>
+      <ol start="4">
+        <li>Fix the vulnerability in the FCCU application by adding input validation using prepared statements.</li>
+        <ul>
+          <li><strong>Note:</strong> You will be using prepared statements anywhere where user input is possible. You will not be adding prepared statements solely in the login form.</li>
+          <li><code>addslashes()</code> and <code>mysql_real_escape_string()</code> are not acceptable.</li>
+        </ul>
+        <li>Create a patch against the original source.</li>
+        <li>
+          <p>Quoting as little sourcecode as possible, write a ~1 page memo, including:</p>
+          <ol>
+            <li>A description of the security flaw in the FCCU application</li>
+            <li>A description of how you fixed the flaw. How does your fix solve the problem?</li>
+            <li>
+              <p>Considering the FCCU application alone, describe a recovery plan for the server, answering:</p>
+              <ol>
+                <li>How serious was this breach? Could attackers gain root access through this vulnerability?</li>
+                <li>What should be done with the server in order to secure it?</li>
+                <li>Include any other observations or thoughts you might have.</li>
+              </ol>
+            </li>
+          </ol>
+        </li>
+        <li>
+          <p>Store the following files in <code>/root/submission</code>:</p>
+          <ol>
+            <li>your memo</li>
+            <li>your exploit walkthrough (<code>exploit.txt</code>)</li>
+            <li>your patch</li>
+          </ol>
+        </li>
+        <li>Use the scripts described in the <a href="#submission-instructions">section</a> for creating a submission tarball.</li>
       </ol>
-      <h1 id="submission-instructions">Submission Instructions</h1>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p><b>AI-option:</b> If you have used AI to write exploits or patch the code or produce any of the answers, you must provide <i>hand-written</i> answers for the exploit walkthrough and your memo. Also provide hand-written answers to the following questions. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Note: you can ask AI to provide answers to the learning questions below.</p>
+        <ol type="a">
+          <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?</li>
+          <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers</li>
+          <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <code>prompts.txt</code> in the "AI" folder.</li>
+        </ol>
+      </aside>
+      <h2 id="submission-instructions">Submission Instructions</h2>
       <p>For this exercise, you will submit a tarball containing your patch, memo, and exploit code. Use the script <code>submit.sh</code> in <code>/root</code> on the <code>server</code> host for creating and restoring those tarballs.</p>
-      <h2 id="submit.sh-and-restore.sh">submit.sh and restore.sh</h2>
+      <h3 id="submit.sh-and-restore.sh">submit.sh and restore.sh</h3>
       <p><b>Note: do not run submit.sh and restore.sh as sudo!</b></p>
       <p><code>submit.sh</code> will back up:</p>
       <ul>
-         <li>The FCCU code in <code>/usr/lib/cgi-bin/FCCU.cgi</code></li>
-         <li>
-            <p>everything in <code>/root/submission</code>, which should include:</p>
-            <ol style="list-style-type: decimal">
-               <li><code>exploit.txt</code></li>
-               <li>your memo</li>
-               <li>your patch</li>
-            </ol>
-         </li>
+        <li>The FCCU code in <code>/usr/lib/cgi-bin/FCCU.cgi</code></li>
+        <li>
+          <p>everything in <code>/root/submission</code>, which should include:</p>
+          <ol>
+            <li><code>exploit.txt</code></li>
+            <li>your memo</li>
+            <li>your patch</li>
+          </ol>
+        </li>
       </ul>
       <p><code>restore.sh</code> will restore those files to their original locations, automatically overwriting whatever is there.</p>
       <p><b>Note: do not run submit.sh and restore.sh as sudo!</b></p>
       <p>Submit your tarball to your instructor.</p>
-      </div>
-   </body>
+    </article>
+  </div>
+</body>
 </html>

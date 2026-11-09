@@ -1,293 +1,179 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>Prevention: OS Hardening</title>
+  <link rel="stylesheet" href="../../css/exercise.css">
+  <script src="../../js/exercise.js" defer></script>
+</head>
 
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <a class="back" href="../../index.html">&larr; SPHERE Shared Education Materials</a>
+      <p class="eyebrow">Prevention</p>
+      <h1>OS Hardening</h1>
+      <p class="author">Created by: Jonathan Blanton and Brent ByungHoon Kang, George Mason University, bkang5@gmu.edu</p>
+    </div>
+  </header>
 
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta name="robots" content="index,nofollow">
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <nav aria-label="Contents">
+        <h2 class="toc-title">Contents</h2>
+        <ol>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#reading">Recommended Reading</a></li>
+          <li><a href="#intro">Introduction</a></li>
+          <li><a href="#terms">Terms Used</a></li>
+          <li><a href="#assignment">Assignment Instructions</a>
+            <ol>
+              <li><a href="#setup">Setup</a></li>
+              <li><a href="#tasks">Tasks</a>
+                <ol>
+                  <li><a href="#part1">Part 1: Finding Running Services</a></li>
+                  <li><a href="#part2">Part 2: Shutting Down Services</a></li>
+                  <li><a href="#part3">Part 3: Making It Stick</a>
+                    <ol>
+                      <li><a href="#part3.1">Part 3.1: Ordinary Services</a></li>
+                      <li><a href="#part3.2">Part 3.2: Inetd Services</a></li>
+                      <li><a href="#part3.3">Part 3.3: Services After Reboot</a></li>
+                    </ol>
+                  </li>
+                </ol>
+              </li>
+              <li><a href="#glitches">What Can Go Wrong</a></li>
+            </ol>
+          </li>
+          <li><a href="#submission">Submission Instructions</a></li>
+        </ol>
+      </nav>
+    </details>
 
-<title>Prevention: OS Hardening</title>
-
-
-
-
-<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
-href="../../css//common.css">
-<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
-href="../../css//screen.css">
-
-</head><body dir="ltr" lang="en">
-
-<div id="page" dir="ltr" lang="en">
-<h1>OS Hardening</h1>
-<div class="author">Created by: Jonathan Blanton and Brent ByungHoon Kang, George Mason University, bkang5@gmu.edu<br></div>
-
-<!-- <div class="due-date">Due: <em>MM/DD/YYYY</em></div> -->
-
-<div class="table-of-contents">
-<div class="table-of-contents-heading">Contents</div>
-<ol type="1">
-<li><a href="#overview">Overview</a>
-<li><a href="#reading">Recommended Reading<a>
-
-<li><a href="#intro">Introduction</a>
-
-<li><a href="#terms">Terms Used</a>
-
-<li><a href="#assignment">Assignment Instructions</a>
-<ol>
-<li><a href="#setup">Setup</a>
-<li><a href="#tasks">Tasks</a>
-<ol>
-<li><a href="#part1">Part 1: Finding Running Services</a>
-<li><a href="#part2">Part 2: Shutting Down Services</a>
-<li><a href="#part3">Part 3: Making It Stick</a>
-<ol>
-<li><a href="#part3.1">Part 3.1: Ordinary Services</a>
-<li><a href="#part3.2">Part 3.2: Inetd Services</a>
-<li><a href="#part3.3">Part 3.3: Services After Reboot</a>
-</ol>
-</ol>
-<li><a href="#glitches">What Can Go Wrong</a>
-</ol>
-<li><a href="#submission">Submission Instructions</a>
-</ol>
-</div>
-
-<span class="anchor" id="overview"></span> 
-<h2>Overview</h2>
-
-<p>The purpose of this lab is to demonstrate how services are started
-and stopped in Linux, and to teach students how to permanently disable
-unneeded services on Linux.  Students will start, stop, and disable
-services.  Unneeded services can be a potential security risk, so
-students should learn how to disable unneeded services in order to
-descrease the probability of a security compromise.
-
-<span class="anchor" id="reading"></span> 
-<h2>Recommended Reading</h2>
-
-Introduction to Linux: A Hands On Guide<br>
-Chapter 4, sections 4.2.4 and 4.2.5<br>
-<a href="http://tldp.org/LDP/intro-linux/html/sect_04_02.html">http://tldp.org/LDP/intro-linux/html/sect_04_02.html</a>
-
-<span class="anchor" id="intro"></span> 
-<h2>Introduction</h2>
-
-<p>OS hardening is the practice of configuring a machine to make it more
-resistant to attack.  Most operating systems ship with many unnecessary
-services and applications running.  The more applications and services
-that run, the greater the chance is that one or more of them will be
-vulnerable to attack.  The purpose of this lab is to demonstrate how to
-shut down unnecessary services on Linux.
-
-<span class="anchor" id="terms"></span>
-
-<h2>Terms used in this lab</h2>
-
-<p>Some of the files and folders you'll encounter in this lab are named
-confusingly.  The following is a brief introduction to the terms you'll
-see:
-
-<dl>
-	<dt>inetd</dt>
-	<dd>This is the "Internet super-server".  (The word "inet"
-	stands for "internet".)  In the old days, this program was used
-	as a front-end to many services.  It's not used as much anymore.</dd>
-
-	<dt>/etc/rc5.d</dt>
-	<dd>This directory stores symbolic links (shortcuts) to scripts
-	in /etc/init.d/.  In this lab, you'll be renaming files in this
-	directory.</dd>
-</dl>
-
-<span class="anchor" id="assignment"></span> 
-<h2>Assignment Instructions</h2>
-
-<h3 class="anchor" id="setup">Setup</h3>
-<ol>
-	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
-</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>oshardening</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
-</li><li>After setting up the lab, access your <tt>target</tt> node. <p /></ol></ol><p />
-
-</div>
-
-<span class="anchor" id="tasks"></span>
-<div class="level3">
-<h3>Tasks</h3>
-
-<span class="anchor" id="part1"></span>
-<h4>Part 1: Find Running Services</h4>
-<ol>
-	<li>View the list
-	of open ports with the following command:
-<pre> netstat -t -u -l</pre>
-	Netstat is used to show open network connections.  The -t option
-	specifies TCP ports, the -u option specifies UDP ports, and the
-	-l option specifies only open (or "listening") ports.  Note that
-	there are quite a few ports open.
-	<li>It would be nice if we knew which programs had those ports
-	open.  Netstat's -p option will show the process name that owns
-	each open port.  The output will be wide, so maximize the
-	terminal window before running the command.  Become root, and
-	run the following:
-<pre> netstat -t -u -l -p</pre>
-This shows the same information as before, except now process names and
-IDs are included. If you do not see them, try with <tt>sudo</tt> in front. Take a screenshot of this window.
-</ol>
-
-<p>The interesting columns in the netstat output are Proto, Local
-Address, and PID/Program name.  Proto stands for protocol.  It will be
-either TCP or UDP (or sometimes TCP6 or UDP6).  Local Address is the IP
-address and port that the service is listening on.  The IP address is
-usually "*", indicating that the service is listening on all available
-network connections.  For some services, the IP address is "localhost"
-(or "127.0.0.1"), indicating that the service will accept connections
-only from the local machine.   Services that listen on localhost are
-generally not a security concern, so we won't bother with those.
-PID/Program name gives the process ID and name of the program that is
-listening on the port.
-
-<p>The name of the service is generally the same as the name of the
-program in the PID/Program name column.  For services controlled by
-inetd, the program name will be inetd, and the name of the service will
-be found in the Local Address column.
-  
-<p>Each of the services that is running represents a potential
-opportunity for an intruder to break into the computer (except for the
-ones that run only on localhost).  In order to secure the system, it is
-necessary to shut down unneeded services.  For this lab, we're going to
-shut down all external services except SSH, inetd, emulab-syncd, pubsubd and ntpd.
-You need SSH to access the node. The rest of listed services are used
-by SPHERE to control or monitor the node.
-
-
-  
-<p>In Linux, there are multiple ways to start and stop services, and
-different distributions offer different tools to manage services.  In
-this lab, we'll be using a very low-level method to manage services.
-The advantage of this method is that it will work on almost all Linux
-distributions, as well as some Unix systems.
-
-<span class="anchor" id="part2"></span>
-<h4>Part 2: Shutting Down Services</h4>
-<p>Most running services are started or stopped with a script in the
-<tt>/etc/init.d</tt> directory.  Usually, the script name will be the
-same as the program name, but not always.  To stop a service, run its
-script with the argument "stop".  For example, to stop sendmail, run the
-following as root:
-<pre>
-service sendmail stop
-</pre>
-<p>To start or restart a stopped service, run the script with "start"
-instead of "stop", as root.
-<pre>
-service sendmail start
-</pre>
-<p>To see a list of all the script in the relevant directory, execute the
-command "<tt>ls /etc/init.d/</tt>".
-<ol>
-	<li>In the netstat output from step 2 above, look at the
-	"Program name" column.  This will tell you which program to
-	stop.
-	<li>Go through the list of programs and stop each unnecessary
-	service.  (Ignore the services that listen on localhost.)  
-	There are a few services whose names don't match the
-	  script names, but the names are similar. The exception to this is named, which is
-	  part of bind9. If you
-	accidentally stop a service you didn't intend to stop, simply
-	start it again.
-	<li>Run "netstat -t -u -l -p" again and copy/paste its output into
-	your lab report.
-	If all went well, you should have only a few services
-	running. 
-	<li>Reboot the nodeA machine.  After logging back in, run
-	"netstat -t -u -l -p" and observe the results.  What happened to
-	the list of open ports? 
-</ol>
-
-<span class="anchor" id="part3"></span>
-<h4>Part 3: Making it stick</h4>
-<p>All of the services you stopped have come back after a reboot.  This is
-because Linux starts all configured services at startup.  You stopped
-the services, but you didn't change the configuration, so all the
-services came back up.  In this part of the lab, we're going to change
-the configuration so that the services won't start automatically.
-
-<span class="anchor" id="part3.1"></span>
-<h5>Part 3.1: Ordinary Services</h5>
-The system determines which services to start based on the default
-runlevel.  (For more information on runlevels, see
-<a href="http://wiki.linuxquestions.org/wiki/Run_Levels">http://wiki.linuxquestions.org/wiki/Run_Levels</a>).
-In our Ubuntu installation, the default runlevel is 5, so the system services are
-controlled by the scripts in <tt>/etc/rc5.d/</tt>.  The name of each script is
-the letter S or K, a two-digit number, and the name of the service.  If
-a script name starts with an S, the service is Started; if it starts
-with a K, it is Killed.  The numbers indicate the order in which the
-scripts should be run.  In this part of the lab, you will disable
-unneeded services.  
-
-<ol>
-	<li>Run "netstat -t -u -l -p" to see which services need to be
-	  stopped.
-	  <li>List contents of <tt>/etc/rc5.d/</tt> directory
-	<li>For each service that you stopped earlier, make the changes stick by running:
-	  <pre>
-	    systemctl disable service-name 
-	    </pre>
-	  Verify that in <tt>/etc/rc5.d</tt> scripts relating to that serivice that started with S, now start with K.
-	For example,
-	  <b>SXXsendmail</b> becomes <b>KXXsendmail</b>, where XX is a two-digit number. List new contents of the directory and identify files that changed.
-	<li>Write down which services you stopped for good, and include the list of commands
-	your lab report.
-</ol>
-<span class="anchor" id="part3.2"></span>
-<h5>Part 3.2: Inetd Services</h5>
-<p>Some services are run by inetd.  
-To ensure they are started or stopped you would need to edit inetd's configuration
-file <b>/etc/inetd.conf</b>.
-
-  Submit your new /etc/inetd.conf file in the lab report.
-
-  
-<span class="anchor" id="part3.3"></span>
-<h5>Part 3.3: Services After Reboot</h5>
-
-After you have turned off all unecessary services reboot the machine and run netstat again.
-Include this output in your lab report.
-
-<span class="anchor" id="glitches"></span>
-
-<div class="level3">
-<h3>What can go wrong</h3>
-<ul>
-	<li>Note that the -p option to netstat requires root privileges.
-	If you run "netstat -t -u -l -p", and there are only dashes in
-	the "PID/Program name" column, you don't have root privilegs.
-	Use "sudo" to run as root.
-	<li>One common issue is students being unable to find the
-	scripts that control certain services.  First, remember that
-	services that listen only on localhost or 127.0.0.1 can be
-	ignored for this exercise.  Secondly, the name of the script
-	doesn't always exactly match the name of the service.  However,
-	the names will often resemble each other.  
-        <li>If you kill a service that needed to stay on you may fail to log 
-         onto your node or may need to input a password on each login. To 
-         fix this problem restart your experiment.  You will
-         need to redo the lab from the start.
-</ul>
-</div>
-
-<span class="anchor" id="submission"></span> 
-<h2>Submission Instructions</h2>
-Submit the following in your report (tar-zipped into a single file):
-<ol>
-<li>Netstat's output from part 1, before you took any actions.
-<li>List of commands you ran to stop the unnecessary services, and which service was affected in part 2.
-<li>Netstat's output with only essential services running (SSH and Emulab).
-<li>List of commands you ran to make changes stick in part 3.
-<li>List of files in /etc/rc5.d directory that changed, and how they changed (show before and after)
-<li>Your new /etc/inetd.conf file.
-<li>Screenshot of netstat's output from part 3.
-</ol>
-
-</body></html>
+    <article>
+      <!-- <div class="due-date">Due: <em>MM/DD/YYYY</em></div> -->
+      <h2 id="overview">Overview</h2>
+      <p>The purpose of this lab is to demonstrate how services are started and stopped in Linux, and to teach students how to permanently disable unneeded services on Linux. Students will start, stop, and disable services. Unneeded services can be a potential security risk, so students should learn how to disable unneeded services in order to descrease the probability of a security compromise.</p>
+      <h2 id="reading">Recommended Reading</h2>
+      <p>Introduction to Linux: A Hands On Guide<br> Chapter 4, sections 4.2.4 and 4.2.5<br> <a href="http://tldp.org/LDP/intro-linux/html/sect_04_02.html">http://tldp.org/LDP/intro-linux/html/sect_04_02.html</a></p>
+      <h2 id="intro">Introduction</h2>
+      <p>OS hardening is the practice of configuring a machine to make it more resistant to attack. Most operating systems ship with many unnecessary services and applications running. The more applications and services that run, the greater the chance is that one or more of them will be vulnerable to attack. The purpose of this lab is to demonstrate how to shut down unnecessary services on Linux.</p>
+      <h2 id="terms">Terms used in this lab</h2>
+      <p>Some of the files and folders you'll encounter in this lab are named confusingly. The following is a brief introduction to the terms you'll see:</p>
+      <dl>
+        <dt>inetd</dt>
+        <dd>This is the "Internet super-server". (The word "inet" stands for "internet".) In the old days, this program was used as a front-end to many services. It's not used as much anymore.</dd>
+        <dt>/etc/rc5.d</dt>
+        <dd>This directory stores symbolic links (shortcuts) to scripts in /etc/init.d/. In this lab, you'll be renaming files in this directory.</dd>
+      </dl>
+      <h2 id="assignment">Assignment Instructions</h2>
+      <h3 id="setup">Setup</h3>
+      <ol type="1">
+        <li>If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.</li>
+        <li>
+          <p>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <code>oshardening</code> as Lab name. Your topology will look like below:</p>
+          <p><img src="topo.png">.</p>
+        </li>
+        <li>After setting up the lab, access your <code>target</code> node.</li>
+      </ol>
+      <h3 id="tasks">Tasks</h3>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p>Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.</p>
+      </aside>
+      <h4 id="part1">Part 1: Find Running Services</h4>
+      <ol>
+        <li>
+          <p>View the list of open ports with the following command:</p>
+          <div class="code">
+            <pre><code>netstat -t -u -l</code></pre>
+          </div>
+          <p>Netstat is used to show open network connections. The -t option specifies TCP ports, the -u option specifies UDP ports, and the -l option specifies only open (or "listening") ports. Note that there are quite a few ports open.</p>
+        </li>
+        <li>
+          <p>It would be nice if we knew which programs had those ports open. Netstat's -p option will show the process name that owns each open port. The output will be wide, so maximize the terminal window before running the command. Become root, and run the following:</p>
+          <div class="code">
+            <pre><code>netstat -t -u -l -p</code></pre>
+          </div>
+          <p>This shows the same information as before, except now process names and IDs are included. If you do not see them, try with <code>sudo</code> in front. Take a screenshot of this window.</p>
+        </li>
+      </ol>
+      <p>The interesting columns in the netstat output are Proto, Local Address, and PID/Program name. Proto stands for protocol. It will be either TCP or UDP (or sometimes TCP6 or UDP6). Local Address is the IP address and port that the service is listening on. The IP address is usually "*", indicating that the service is listening on all available network connections. For some services, the IP address is "localhost" (or "127.0.0.1"), indicating that the service will accept connections only from the local machine. Services that listen on localhost are generally not a security concern, so we won't bother with those. PID/Program name gives the process ID and name of the program that is listening on the port.</p>
+      <p>The name of the service is generally the same as the name of the program in the PID/Program name column. For services controlled by inetd, the program name will be inetd, and the name of the service will be found in the Local Address column.</p>
+      <p>Each of the services that is running represents a potential opportunity for an intruder to break into the computer (except for the ones that run only on localhost). In order to secure the system, it is necessary to shut down unneeded services. For this lab, we're going to shut down all external services except SSH and link-local multicast name resolution (LLMNR). You need SSH to access the node. The rest of listed services are used by SPHERE to control or monitor the node.</p>
+      <p>In Linux, there are multiple ways to start and stop services, and different distributions offer different tools to manage services. In this lab, we'll be using a very low-level method to manage services. The advantage of this method is that it will work on almost all Linux distributions, as well as some Unix systems.</p>
+      <h4 id="part2">Part 2: Shutting Down Services</h4>
+      <p>Most running services are started or stopped with a script in the <code>/etc/init.d</code> directory. Usually, the script name will be the same as the program name, but not always. To stop a service, run its script with the argument "stop". For example, to stop sendmail, run the following as root:</p>
+      <div class="code">
+        <pre><code>service sendmail stop</code></pre>
+      </div>
+      <p>To start or restart a stopped service, run the script with "start" instead of "stop", as root.</p>
+      <div class="code">
+        <pre><code>service sendmail start</code></pre>
+      </div>
+      <p>To see a list of all the script in the relevant directory, execute the command "<code>ls /etc/init.d/</code>".</p>
+      <ol>
+        <li>In the netstat output from step 2 above, look at the "Program name" column. This will tell you which program to stop.</li>
+        <li>Go through the list of programs and stop each unnecessary service. (Ignore the services that listen on localhost.) There are a few services whose names don't match the script names, but the names are similar. The exception to this is named, which is part of bind9. If you accidentally stop a service you didn't intend to stop, simply start it again.</li>
+        <li>Run "netstat -t -u -l -p" again and copy/paste its output into your lab report. If all went well, you should have only a few services running.</li>
+        <li>Reboot the nodeA machine. After logging back in, run "netstat -t -u -l -p" and observe the results. What happened to the list of open ports?</li>
+      </ol>
+      <h4 id="part3">Part 3: Making it stick</h4>
+      <p>All of the services you stopped have come back after a reboot. This is because Linux starts all configured services at startup. You stopped the services, but you didn't change the configuration, so all the services came back up. In this part of the lab, we're going to change the configuration so that the services won't start automatically.</p>
+      <h5 id="part3.1">Part 3.1: Ordinary Services</h5>
+      <p>The system determines which services to start based on the default runlevel. (For more information on runlevels, see <a href="http://wiki.linuxquestions.org/wiki/Run_Levels">http://wiki.linuxquestions.org/wiki/Run_Levels</a>). In our Ubuntu installation, the default runlevel is 5, so the system services are controlled by the scripts in <code>/etc/rc5.d/</code>. The name of each script is the letter S or K, a two-digit number, and the name of the service. If a script name starts with an S, the service is Started; if it starts with a K, it is Killed. The numbers indicate the order in which the scripts should be run. In this part of the lab, you will disable unneeded services.</p>
+      <ol>
+        <li>Run "netstat -t -u -l -p" to see which services need to be stopped.</li>
+        <li>List contents of <code>/etc/rc5.d/</code> directory</li>
+        <li>
+          <p>For each service that you stopped earlier, make the changes stick by running:</p>
+          <div class="code">
+            <pre><code>systemctl disable service-name</code></pre>
+          </div>
+          <p>Verify that in <code>/etc/rc5.d</code> scripts relating to that serivice that started with S, now start with K. For example, <b>SXXsendmail</b> becomes <b>KXXsendmail</b>, where XX is a two-digit number. List new contents of the directory and identify files that changed.</p>
+        </li>
+        <li>Write down which services you stopped for good, and include the list of commands your lab report.</li>
+      </ol>
+      <h5 id="part3.2">Part 3.2: Inetd Services</h5>
+      <p>Some services are run by inetd. To ensure they are started or stopped you would need to edit inetd's configuration file <b>/etc/inetd.conf</b>. Submit your new /etc/inetd.conf file in the lab report.</p>
+      <h5 id="part3.3">Part 3.3: Services After Reboot</h5>
+      <p>After you have turned off all unecessary services reboot the machine and run netstat again. Include this output in your lab report.</p>
+      <h3 id="glitches">What can go wrong</h3>
+      <ul>
+        <li>Note that the -p option to netstat requires root privileges. If you run "netstat -t -u -l -p", and there are only dashes in the "PID/Program name" column, you don't have root privilegs. Use "sudo" to run as root.</li>
+        <li>One common issue is students being unable to find the scripts that control certain services. First, remember that services that listen only on localhost or 127.0.0.1 can be ignored for this exercise. Secondly, the name of the script doesn't always exactly match the name of the service. However, the names will often resemble each other.</li>
+        <li>If you kill a service that needed to stay on you may fail to log onto your node or may need to input a password on each login. To fix this problem restart your experiment. You will need to redo the lab from the start.</li>
+      </ul>
+      <h2 id="submission">Submission Instructions</h2>
+      <p>Submit the following in your report (tar-zipped into a single file):</p>
+      <ol>
+        <li>Netstat's output from part 1, before you took any actions.</li>
+        <li>List of commands you ran to stop the unnecessary services, and which service was affected in part 2.</li>
+        <li>Netstat's output with only essential services running (SSH and LLMNR).</li>
+        <li>List of commands you ran to make changes stick in part 3.</li>
+        <li>List of files in /etc/rc5.d directory that changed, and how they changed (show before and after)</li>
+        <li>Your new /etc/inetd.conf file.</li>
+        <li>
+          <p>Screenshot of netstat's output from part 3.</p>
+          <aside class="note ai" aria-label="Use of AI">
+            <p class="note-title" data-added>Use of AI</p>
+            <p><b>AI-option:</b> If you have used AI to <b>run commands in this exercise</b>, you must provide <i>hand-written</i> answers to the following questions. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Note: you can ask AI to provide answers to the learning questions below.</p>
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?</li>
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers</li>
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <code>prompts.txt</code> in the "AI" folder.</li>
+              <li>Learning question: What does netstat do? What do specific options you have used do?</li>
+              <li>Learning question: Tell in your own words how did you go from the list of open ports to finding which scripts on disk were keeping these ports open, how did you close these services and how did you make the changes stick through reboots. One line of answer per question is enough.</li>
+              <li>Learning question: For the lines changed in files in /etc/rc5.d directory comment next to each line what this change does</li>
+            </ol>
+          </aside>
+        </li>
+      </ol>
+    </article>
+  </div>
+</body>
+</html>

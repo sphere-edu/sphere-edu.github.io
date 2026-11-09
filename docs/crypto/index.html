@@ -1,145 +1,109 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>Cryptography: Symmetric Encryption</title>
+  <link rel="stylesheet" href="../../css/exercise.css">
+  <script src="../../js/exercise.js" defer></script>
+</head>
 
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta name="robots" content="index,nofollow">
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <a class="back" href="../../index.html">&larr; SPHERE Shared Education Materials</a>
+      <p class="eyebrow">Cryptography</p>
+      <h1>Symmetric Encryption</h1>
+      <p class="author">Created by: Jelena Mirkovic, USC/ISI, sunshine@isi.edu.</p>
+    </div>
+  </header>
 
-<title>Cryptography: Symmetric Encryption</title>
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <nav aria-label="Contents">
+        <h2 class="toc-title">Contents</h2>
+        <ol>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#reading">Required Reading</a></li>
+          <li><a href="#tasks">Tasks</a>
+            <ol>
+              <li><a href="#capture">Capture the Message</a></li>
+              <li><a href="#break">Break the Encryption</a></li>
+              <li><a href="#strong">Use a Strong Cipher</a></li>
+            </ol>
+          </li>
+          <li><a href="#glitches">What Can Go Wrong</a></li>
+          <li><a href="#submission">Submission Instructions</a></li>
+        </ol>
+      </nav>
+    </details>
 
-
-
-
-<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
-href="../../css/common.css">
-<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
-href="../../css/screen.css">
-
-</head><body dir="ltr" lang="en">
-
-<div id="page" dir="ltr" lang="en">
-<h1>Cryptography: Symmetric Encryption</h1>
-<div class="author">Created by: Jelena Mirkovic, USC/ISI, sunshine@isi.edu.<br>
-</div>
-
-<div class="table-of-contents">
-<div class="table-of-contents-heading">Contents</div>
-
-<ol type="1">
-  <li><a href="#overview">Overview</a>    
-  <li><a href="#reading">Required Reading</a>
-  <li><a href="#tasks">Tasks</a>
-	<ol>
-	<li><a href="#capture">Capture the Message</a></li>
-	<li><a href="#break">Break the Encryption</a></li>
-	<li><a href="#strong">Use a Strong Cipher</a></li>
-	</ol>
-<li><a href="#glitches">What Can Go Wrong</a>
-<li><a href="#submission">Submission Instructions</a>
-</ol>
-</div>
-
-<span class="anchor" id="overview"></span> 
-<h2>Overview</h2>
-
-    
-    This exercise demonstrates how a simple substitution cipher can be broken using frequency analysis. It then asks the students replace that cipher with a stronger AES cipher using OpenSSL. 
-
-
-    This exercise helps students learn the following concepts: (1) Traffic sniffing and payload extraction, (2) Using frequency analysis to break substitution ciphers, (3) Using OpenSSL for strong encryption.
-    
-
-<span class="anchor" id="reading"></span> 
-<h2>Required Reading</h2>
-
-  Symmetric encryption uses the same key at sender and at receiver. It is assumed that both parties have exchanged this key somehow prior to communication. Encryption algorithm is public and only the key stays secret to ensure confidentiality.
-
-  <h3>Substitution Cipher</h3>
-
-  A substitution cipher is a simple cipher where each symbol of plaintext is replaced by another symbol of ciphertext. Usually symbols are drawn from the same alphabet, thus one letter in English plaintext would be replaced with another letter from the English alphabet. The key in this case is the mapping of the original letters to those in ciphertext.
-
-  <p>Substitution ciphers are vulnerable to <i>frequency analysis</i>. When they are used to encrypt text in natural language, the attacker can pair the most frequent letters from that language with most frequent symbols in ciphertext and thus partially recover the key. Because natural language has many redundancies, the attacker can guess words in the partially recovered text and thus recover more letters until the whole message is revealed. Frequency analysis and attacker's guesses will not always succeed. A lot of the cryptoanalysis process is trial and error, backtracking and keeping score of guesses that did not pan out. How will the attacker know they succeeded? The decrypted text will start making sense!
-  
-    <span class="anchor" id="intro"></span>
-    <h2>Introduction</h2>
-
-  In this exercise Alice and Bob are communicating using symmetric encryption. Eve is in the middle and thus able to sniff their messages. Alice is using a simple substitution cipher, the original message is all lowercase and in English, and spaces and punctuations from the original message are preserved in ciphertext.
-
-<span class="anchor" id="assignment"></span> 
-<h2>Assignment Instructions</h2>
-
-
-<h3 class="anchor" id="setup">Setup</h3>
-
-<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
-</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>crypto</font> as Lab name.  Your topology will look like below:<p><img src="topo.png" width="200">.
-</li>
-
-</div>
-<span class="anchor" id="tasks"></span>
-<div class="level3">
-<h3>Tasks</h3>
-
-<div class="ai">
-<p />
-<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
-</div>
-
-<span class="anchor" id="capture"></span>
-<h4>1. Capture the Message</h4>
-
-On node <b>eve</b> use <tt>tcpdump</tt> or <tt>wireshark</tt> to capture entire packets sent from Alice to Bob. Note that you only care about packets going to port 5005. You can also write a Python script to capture the packets. Once you notice that the payload repeats stop and note the encrypted message in a file <tt>ciphertext.txt</tt>. If you just copy/pasted the payload from <tt>tcpdump</tt> note that spaces are encoded as dots in that output, and '\n' represents a newline.
-
-<span class="anchor" id="break"></span>
-<h4>2. Break the Encryption</h4>
-
-Write a script that calculates the frequency of letters in ciphertext. Using a letter frequency table, such as <a href="https://forum.artofmemory.com/t/letter-frequency-of-english/65746">this one</a> extend your script to try some most-frequent-letter replacements. After each trial your script should display the partially-decrypted message and clearly show (e.g., by capitalizing) which letters remain to be decrypted. After each trial your script should allow the user to input a mapping (e.g., ask for the letter from the message to be replaced by another letter), to go back one step or more (one by one) and then display the new version of the message. Once you recover the original message save the mapping and the message in files <tt>key.txt</tt> and <tt>plaintext.txt</tt>. Note that some letters may remain unmapped in the key, that is OK. Format the key to show the original letter and the encrypted letter on one line, separated by a space, like this:<pre>
-  a t
-  b m
-  ...
-  z x
-  </pre>
-
-<span class="anchor" id="strong"></span>
-<h4>3. Use a Strong Cipher</h4>
-
-If you were able to retrieve the original message, use it in this step. Otherwise make up your own message. Use the generic <tt>encrypt.py</tt> in your home directory on <b>alice</b> node. Add steps to encrypt the message using AES cipher - you do not need to decrypt it at <b>bob</b> node. Move the resulting <b>ciperhtext-aes.txt</b> into file <b>message.txt</b> in <b>/tmp/alice</b>. It will start being sent to <b>bob</b>. Re-run <b>eve's</b> sniffing code. What does it show now? Note it in <tt>ciphertext-aes.txt</tt>. Also note your message in <tt>plaintext-aes.txt</tt> and your key in <tt>key-aes.txt</tt>.
-
-<div class="ai">
-<b>AI-option</b> If you have used AI to give you code for one or more of the tasks, please submit additional <i>hand-written</i> answers. You can write them on a piece of paper, take a picture of that paper and then add the picture to your submission stored in a separate "AI" folder.
-	    <ol type="a">
-	      <li>Which AI you have used? How many tokens did you spend? How much time did you spend?
-	      <li>How many times did you have to prompt the AI to get the final answer (for each task please specify separately)?
-	      <li>Submit your final prompt (for each task please specify separately)
-	      <li>Submit the command you ran to capture traffic with all the command-line parameters and explain what each parameter choice means
-	      <li>Submit the narrative of your cipher-breaking strategy? Were there any manual parts? How long did it take to break the cipher?
-	    </ol>
-	    </div>
-</p>
-</div>
-
-<div class="level3">
-<h3>What can go wrong</h3>
-
-<p />There's not much to go wrong here. However, you may need to do some trial-and-error iterations during cipher-breaking. Be patient and use punctuation and spaces as hints to help you when you're guessing. 
-
-</div>
-
-<span class="anchor" id="submission"></span> 
-<h2>Submission Instructions</h2>
-
-<p />Put the following files into a folder <tt>crypto-break</tt>:
-<ol>
-  <li><tt>ciphertext.txt</tt>
-  <li><tt>plaintext.txt</tt>
-  <li><tt>key.txt</tt>
-  <li>Your cipher-breaking code
-  <li><tt>ciphertext-aes.txt</tt>
-  <li><tt>plaintext-aes.txt</tt>
-  <li>Your modified <tt>encrypt.py</tt>
-  <li><tt>key-aes.txt</tt>
-  </ol>
-Create a <tt>tar.gz</tt> file by typing <tt>tar -czf submission.tgz crypto-break</tt>. Submit your tarball to your instructor.
-
-</div>
-</body></html>
-
+    <article>
+      <h2 id="overview">Overview</h2>
+      <p>This exercise demonstrates how a simple substitution cipher can be broken using frequency analysis. It then asks the students replace that cipher with a stronger AES cipher using OpenSSL. This exercise helps students learn the following concepts: (1) Traffic sniffing and payload extraction, (2) Using frequency analysis to break substitution ciphers, (3) Using OpenSSL for strong encryption.</p>
+      <h2 id="reading">Required Reading</h2>
+      <p>Symmetric encryption uses the same key at sender and at receiver. It is assumed that both parties have exchanged this key somehow prior to communication. Encryption algorithm is public and only the key stays secret to ensure confidentiality.</p>
+      <h3>Substitution Cipher</h3>
+      <p>A substitution cipher is a simple cipher where each symbol of plaintext is replaced by another symbol of ciphertext. Usually symbols are drawn from the same alphabet, thus one letter in English plaintext would be replaced with another letter from the English alphabet. The key in this case is the mapping of the original letters to those in ciphertext.</p>
+      <p>Substitution ciphers are vulnerable to <i>frequency analysis</i>. When they are used to encrypt text in natural language, the attacker can pair the most frequent letters from that language with most frequent symbols in ciphertext and thus partially recover the key. Because natural language has many redundancies, the attacker can guess words in the partially recovered text and thus recover more letters until the whole message is revealed. Frequency analysis and attacker's guesses will not always succeed. A lot of the cryptoanalysis process is trial and error, backtracking and keeping score of guesses that did not pan out. How will the attacker know they succeeded? The decrypted text will start making sense!</p>
+      <h2 id="intro">Introduction</h2>
+      <p>In this exercise Alice and Bob are communicating using symmetric encryption. Eve is in the middle and thus able to sniff their messages. Alice is using a simple substitution cipher, the original message is all lowercase and in English, and spaces and punctuations from the original message are preserved in ciphertext.</p>
+      <h2 id="assignment">Assignment Instructions</h2>
+      <h3 id="setup">Setup</h3>
+      <ol type="1">
+        <li>If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.</li>
+        <li>
+          <p>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <code>crypto</code> as Lab name. Your topology will look like below:</p>
+          <p><img src="topo.png" width="200">.</p>
+        </li>
+      </ol>
+      <h3 id="tasks">Tasks</h3>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p>Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.</p>
+      </aside>
+      <h4 id="capture">1. Capture the Message</h4>
+      <p>On node <b>eve</b> use <code>tcpdump</code> or <code>wireshark</code> to capture entire packets sent from Alice to Bob. Note that you only care about packets going to port 5005. You can also write a Python script to capture the packets. Once you notice that the payload repeats stop and note the encrypted message in a file <code>ciphertext.txt</code>. If you just copy/pasted the payload from <code>tcpdump</code> note that spaces are encoded as dots in that output, and '\n' represents a newline.</p>
+      <h4 id="break">2. Break the Encryption</h4>
+      <p>Write a script that calculates the frequency of letters in ciphertext. Using a letter frequency table, such as <a href="https://forum.artofmemory.com/t/letter-frequency-of-english/65746">this one</a> extend your script to try some most-frequent-letter replacements. After each trial your script should display the partially-decrypted message and clearly show (e.g., by capitalizing) which letters remain to be decrypted. After each trial your script should allow the user to input a mapping (e.g., ask for the letter from the message to be replaced by another letter), to go back one step or more (one by one) and then display the new version of the message. Once you recover the original message save the mapping and the message in files <code>key.txt</code> and <code>plaintext.txt</code>. Note that some letters may remain unmapped in the key, that is OK. Format the key to show the original letter and the encrypted letter on one line, separated by a space, like this:</p>
+      <div class="code">
+        <pre><code>a t
+b m
+...
+z x</code></pre>
+      </div>
+      <h4 id="strong">3. Use a Strong Cipher</h4>
+      <p>If you were able to retrieve the original message, use it in this step. Otherwise make up your own message. Use the generic <code>encrypt.py</code> in your home directory on <b>alice</b> node. Add steps to encrypt the message using AES cipher - you do not need to decrypt it at <b>bob</b> node. Move the resulting <b>ciperhtext-aes.txt</b> into file <b>message.txt</b> in <b>/tmp/alice</b>. It will start being sent to <b>bob</b>. Re-run <b>eve's</b> sniffing code. What does it show now? Note it in <code>ciphertext-aes.txt</code>. Also note your message in <code>plaintext-aes.txt</code> and your key in <code>key-aes.txt</code>.</p>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p><b>AI-option</b> If you have used AI to give you code for one or more of the tasks, please submit additional <i>hand-written</i> answers. You can write them on a piece of paper, take a picture of that paper and then add the picture to your submission stored in a separate "AI" folder.</p>
+        <ol type="a">
+          <li>Which AI you have used? How many tokens did you spend? How much time did you spend?</li>
+          <li>How many times did you have to prompt the AI to get the final answer (for each task please specify separately)?</li>
+          <li>Submit your final prompt (for each task please specify separately)</li>
+          <li>Submit the command you ran to capture traffic with all the command-line parameters and explain what each parameter choice means</li>
+          <li>Submit the narrative of your cipher-breaking strategy? Were there any manual parts? How long did it take to break the cipher?</li>
+        </ol>
+      </aside>
+      <h3>What can go wrong</h3>
+      <p>There's not much to go wrong here. However, you may need to do some trial-and-error iterations during cipher-breaking. Be patient and use punctuation and spaces as hints to help you when you're guessing.</p>
+      <h2 id="submission">Submission Instructions</h2>
+      <p>Put the following files into a folder <code>crypto-break</code>:</p>
+      <ol>
+        <li><code>ciphertext.txt</code></li>
+        <li><code>plaintext.txt</code></li>
+        <li><code>key.txt</code></li>
+        <li>Your cipher-breaking code</li>
+        <li><code>ciphertext-aes.txt</code></li>
+        <li><code>plaintext-aes.txt</code></li>
+        <li>Your modified <code>encrypt.py</code></li>
+        <li><code>key-aes.txt</code></li>
+      </ol>
+      <p>Create a <code>tar.gz</code> file by typing <code>tar -czf submission.tgz crypto-break</code>. Submit your tarball to your instructor.</p>
+    </article>
+  </div>
+</body>
+</html>

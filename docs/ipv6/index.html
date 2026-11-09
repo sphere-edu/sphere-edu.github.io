@@ -1,91 +1,93 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>Networking: IPv6</title>
+  <link rel="stylesheet" href="../../css/exercise.css">
+  <script src="../../js/exercise.js" defer></script>
+</head>
 
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta name="robots" content="index,nofollow">
+<body>
+  <header class="masthead">
+    <div class="wrap">
+      <a class="back" href="../../index.html">&larr; SPHERE Shared Education Materials</a>
+      <p class="eyebrow">Networking</p>
+      <h1>IPv6 Internetworking</h1>
+      <p class="author">Created by: Lyndon Pierson.</p>
+    </div>
+  </header>
 
-<title>Networking: IPv6</title>
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <nav aria-label="Contents">
+        <h2 class="toc-title">Contents</h2>
+        <ol>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#assignment">Assignment Instructions</a>
+            <ol>
+              <li><a href="#setup">Setup</a></li>
+              <li><a href="#tasks">Tasks</a></li>
+            </ol>
+          </li>
+          <li><a href="#submission">Submission Instructions</a></li>
+        </ol>
+      </nav>
+    </details>
 
-<link rel="stylesheet" type="text/css" charset="utf-8" media="all" 
-href="../../css//common.css">
-<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" 
-href="../../css//screen.css">
-
-</head><body dir="ltr" lang="en">
-
-<div id="page" dir="ltr" lang="en">
-<h1>IPv6 Internetworking</h1>
-<div class="author">Created by: Lyndon Pierson.<br>
-</div>
-
-<div class="table-of-contents">
-<div class="table-of-contents-heading">Contents</div>
-<ol type="1">
-<li><a href="#overview">Overview</a>
-<li><a href="#assignment">Assignment Instructions</a>
-<ol>
-<li><a href="#setup">Setup</a>
-<li><a href="#tasks">Tasks</a>
-</ol>
-
-<li><a href="#submission">Submission Instructions</a>
-
-</ol>
-</div>
-
-<span class="anchor" id="overview"></span> 
-<h2>Overview</h2>
-<p>Lab exercise incorporating IPv6.</p>
-
-<span class="anchor" id="assignment"></span> 
-<h2>Assignment Instructions</h2>
-
-<h3 class="anchor" id="setup">Setup</h3>
-<ol>
-	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
-</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>ipv6</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
-</li><li>After setting up the lab, access your nodes. <p /></ol></ol><p />
-
-
-
-</div>
-
-<span class="anchor" id="tasks"></span>
-<div class="level3">
-<h3>Tasks</h3>
-<p>Your task is to enable IPv6 addresses between the nodes in your experiment.
-  <ol>
-    <li>
-  Run:
-  <pre>
-    ifconfig
-  </pre>
-  on each node, discover and note the interface for each IPv4 address shown in the topology diagram above. Also note the IPv6 address assigned to each interface that you just discovered.
-
-<li>Ping the router from client and server using the link-local addresses and using the interfaces on client and server node that face the router.
-
-<pre>
-ping6 -I ethx -c 1 fe80::/64 (use the addresses from your experiment)
-</pre>
-
-<li>Verify that IPv6 kernel is running on the router, client and server nodes.
-
-<pre>
-test -f /proc/net/if_inet6 && echo "Running kernel is IPv6 ready"
-</pre>
-
-<li>Install netplan on router, client and server (use sudo):
-<pre>
-apt update -y
-apt install netplan.io network-manager -y
-</pre>
-    
-Edit /etc/netplan/config.yaml file on router, client and server nodes to include script for each interface.
-
-<p><b>Note:</b> remember the router has two interfaces; replace <i>ethx</i> and <i>ethy</i> below with the correct ethernet interfaces from your experiment!</p>
-<p>Router node:</p>
-<pre>
-# This file describes the network interfaces available on your system
+    <article>
+      <h2 id="overview">Overview</h2>
+      <p>Lab exercise incorporating IPv6.</p>
+      <h2 id="assignment">Assignment Instructions</h2>
+      <h3 id="setup">Setup</h3>
+      <ol type="1">
+        <li>If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.</li>
+        <li>
+          <p>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <code>ipv6</code> as Lab name. Your topology will look like below:</p>
+          <p><img src="topo.png">.</p>
+        </li>
+        <li>After setting up the lab, access your nodes.</li>
+      </ol>
+      <h3 id="tasks">Tasks</h3>
+      <aside class="note ai" aria-label="Use of AI">
+        <p class="note-title" data-added>Use of AI</p>
+        <p>Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.</p>
+      </aside>
+      <p>Your task is to enable IPv6 addresses between the nodes in your experiment.</p>
+      <ol>
+        <li>
+          <p>Run:</p>
+          <div class="code">
+            <pre><code>ifconfig</code></pre>
+          </div>
+          <p>on each node, discover and note the interface for each IPv4 address shown in the topology diagram above. Also note the IPv6 address assigned to each interface that you just discovered.</p>
+        </li>
+        <li>
+          <p>Ping the router from client and server using the link-local addresses and using the interfaces on client and server node that face the router.</p>
+          <div class="code">
+            <pre><code>ping6 -I ethx -c 1 fe80::/64 (use the addresses from your experiment)</code></pre>
+          </div>
+        </li>
+        <li>
+          <p>Verify that IPv6 kernel is running on the router, client and server nodes.</p>
+          <div class="code">
+            <pre><code>test -f /proc/net/if_inet6 &amp;&amp; echo "Running kernel is IPv6 ready"</code></pre>
+          </div>
+        </li>
+        <li>
+          <p>Install netplan on router, client and server (use sudo):</p>
+          <div class="code">
+            <pre><code>apt update -y
+apt install netplan.io network-manager -y</code></pre>
+          </div>
+          <p>Edit /etc/netplan/config.yaml file on router, client and server nodes to include script for each interface.</p>
+          <p><b>Note:</b> remember the router has two interfaces; replace <i>ethx</i> and <i>ethy</i> below with the correct ethernet interfaces from your experiment!</p>
+          <p>Router node:</p>
+          <div class="code">
+            <pre><code># This file describes the network interfaces available on your system
 # For more information, see netplan(5).
 network:
   version: 2
@@ -102,12 +104,11 @@ network:
       dhcp6: false
       addresses:
           - 1.1.2.2/24
-          - 2001:0db8:0100:f102::250/64
-</pre>
-    
-<p>Client node:</p>
-<pre>
-# This file describes the network interfaces available on your system
+          - 2001:0db8:0100:f102::250/64</code></pre>
+          </div>
+          <p>Client node:</p>
+          <div class="code">
+            <pre><code># This file describes the network interfaces available on your system
 # For more information, see netplan(5).
 network:
   version: 2
@@ -119,12 +120,11 @@ network:
       gateway6: 2001:0db8:100:f102::2
       addresses:
           - 1.1.2.3/24
-          - 2001:0db8:0100:f102::2/64
-</pre>
-    
-<p>Server node:</p>
-<pre>
-# This file describes the network interfaces available on your system
+          - 2001:0db8:0100:f102::2/64</code></pre>
+          </div>
+          <p>Server node:</p>
+          <div class="code">
+            <pre><code># This file describes the network interfaces available on your system
 # For more information, see netplan(5).
 network:
   version: 2
@@ -136,48 +136,56 @@ network:
       gateway6: 2001:0db8:100:f101::1
       addresses:
           - 5.6.7.8/24
-          - 2001:0db8:0100:f101::1/64
-</pre>
-
-After installing netplan and editing yaml file, apply all settings on router, client and server nodes.
-
-<pre>
-netplan apply
-</pre>
-
-<li>Run <tt>ifconfig</tt> on router, client and server to see the IPv6 addresses added.
-
-Run ip command from router to see the link-local addresses of client and server.
-
-<pre>
-ip -6 neigh show
-</pre>
-    
-
-<pre>
-/sbin/ip -6 route show dev ethx
-</pre>
-    
-<li>Configure your <tt>router</tt> node as a IPv6 router. Enable forwarding by typing:
-
-  <pre>
-    sysctl -w net.ipv6.conf.all.forwarding=1
-    </pre>
-    
-<li>Try pinging client from server, using the client's IPv6 address.
-    
-<span class="anchor" id="submission"></span> 
-<h2>Submission Instructions</h2>
-
-Submit the following, all in one tar-gzipped file
-<ol>
-<li>Annotated topology with IPv4 and IPv6 addresses and interface names (e.g., eth1)
-<li>Your netplan configuration files
-<li>Output of the following command, ran at <tt>client</tt> node:
-  <pre>
-    traceroute -6 2001:db8:100:f101::1
-    </pre>
-</ol>
-
-</div>
-</body></html>
+          - 2001:0db8:0100:f101::1/64</code></pre>
+          </div>
+          <p>After installing netplan and editing yaml file, apply all settings on router, client and server nodes.</p>
+          <div class="code">
+            <pre><code>netplan apply</code></pre>
+          </div>
+        </li>
+        <li>
+          <p>Run <code>ifconfig</code> on router, client and server to see the IPv6 addresses added. Run ip command from router to see the link-local addresses of client and server.</p>
+          <div class="code">
+            <pre><code>ip -6 neigh show</code></pre>
+          </div>
+          <div class="code">
+            <pre><code>/sbin/ip -6 route show dev ethx</code></pre>
+          </div>
+        </li>
+        <li>
+          <p>Configure your <code>router</code> node as a IPv6 router. Enable forwarding by typing:</p>
+          <div class="code">
+            <pre><code>sysctl -w net.ipv6.conf.all.forwarding=1</code></pre>
+          </div>
+        </li>
+        <li>
+          <p>Try pinging client from server, using the client's IPv6 address.</p>
+          <h2 id="submission">Submission Instructions</h2>
+          <p>Submit the following, all in one tar-gzipped file</p>
+          <ol>
+            <li>Annotated topology with IPv4 and IPv6 addresses and interface names (e.g., eth1)</li>
+            <li>Your netplan configuration files</li>
+            <li>
+              <p>Output of the following command, ran at <code>client</code> node:</p>
+              <div class="code">
+                <pre><code>traceroute -6 2001:db8:100:f101::1</code></pre>
+              </div>
+            </li>
+          </ol>
+          <aside class="note ai" aria-label="Use of AI">
+            <p class="note-title" data-added>Use of AI</p>
+            <p><b>AI-option:</b> If you have used AI to find and patch the buffer overflow, you must provide <i>hand-written</i> answers to the following questions. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Note: you can ask AI to provide answers to the learning questions below.</p>
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?</li>
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers</li>
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <code>prompts.txt</code> in the "AI" folder.</li>
+              <li>Learning question: Which command did you run to identify the interfaces that should be IPv6 enabled? Did the command show multiple interfaces? How did you know which one to choose?</li>
+              <li>Learning question: What does netplan do? Is this routing software?</li>
+            </ol>
+          </aside>
+        </li>
+      </ol>
+    </article>
+  </div>
+</body>
+</html>
