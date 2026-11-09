@@ -1,0 +1,705 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="robots" content="index,nofollow">
+
+<title>DNS: Man-in-the-middle Attacks</title>
+
+<link rel="stylesheet" type="text/css" charset="utf-8" media="all" href="../../css//common.css">
+<link rel="stylesheet" type="text/css" charset="utf-8" media="screen" href="../../css//screen.css">
+
+</head><body dir="ltr" lang="en">
+
+<div id="page" dir="ltr" lang="en">
+<h1>DNS and Man-in-the-middle Attacks</h1>
+<div class="author">Created by: Brendan Sheridan and Dr. Daniel Massey, Colorado State University. {sheridan, massey}@cs.colostate.edu<br>
+</div>
+
+<div class="table-of-contents">
+<div class="table-of-contents-heading">Contents</div>
+<ol type="1">
+<li><a href="#overview">Overview</a>
+</li><li><a href="#reading">Required Reading</a>
+
+<ol type="1">
+<li><a href="#dns">Domain Name System</a></li>
+<li><a href="#dnsoverview">DNS Overview</a></li>
+<li><a href="#dnsvulns">DNS Vulnerabilities</a>
+<ol>
+	<li><a href="#mitm">Man in the Middle</a></li>
+	<li><a href="#birthday">Birthday Attack</a></li>
+	<li><a href="#kaminsky">Kaminsky Attack</a></li>
+	</ol></li>
+<li><a href="#publickey">Public Key Cryptography</a></li>
+<li><a href="#verification">Cryptographic Authentication</a></li>
+<li><a href="#dnssec">Domain Name System Security(DNSSEC)</a></li>
+<li><a href="#arp">Address Resolution Protocol(ARP)</a>
+</li><li><a href="#spoof">ARP Spoofing</a></li>
+<li><a href="#ettercap">Ettercap</a></li>
+<li><a href="#tcp">TCPDUMP</a></li>
+<li><a href="#dig">DNS lookup utility(dig)</a></li>
+</ol></li><li><a href="#intro">Introduction</a>
+</li><li><a href="#assignment">Assignment Instructions</a>
+<ol>
+<li><a href="#setup">Setup</a>
+</li><li><a href="#ni">Network Information</a></li>
+<li><a href="#tasks">Tasks</a>
+	<ol>
+	<li><a href="#p1">Analyzing DNS Messages</a></li>
+	<li><a href="#p2">The Big Picture</a></li>
+	<li><a href="#p3">Using Ettercap for ARP spoofing</a></li>
+	<li><a href="#p4">Using Bettercap for DNS spoofing</a></li>
+	<li><a href="#p5">Implementing DNSSEC</a></li>
+	</ol>
+</li><li><a href="#glitches">What Can Go Wrong</a>
+</li></ol>
+</li><li><a href="#submission">Submission Instructions</a>
+
+</li></ol>
+</div>
+
+<span class="anchor" id="overview"></span> 
+<h2>Overview</h2>
+
+<p>
+The purpose of this lab is to introduce you to the Domain Name System 
+(DNS), its vulnerabilities, and Domain Name System Security (DNSSEC). It
+ will take you through a hands-on demonstration of one form of attack, 
+and have you implement DNSSEC in order to mitigate it. You need a 
+working knowledge of TCP/IP, the client-server model, and the Unix 
+command line. Experience with dns, tcpdump, ettercap, and public key 
+cryptography is also helpful.
+
+</p><p>
+After successfully completing this lab, you should be able to: 
+
+</p><ol type="1"><li>Understand the basics of DNS
+</li><li>Understand the basic DNS vulnerabilities 
+</li><li>Understand the basics and vulnerable nature of ARP
+</li><li>Understand the methodology of man-in-the-middle attacks
+</li><li>Understand the basics of public key cryptography 
+</li><li>Understand the goal and limitations of cryptographic authentication
+</li><li>Understand the necessity of DNSSEC
+</li><li>Understand the basics of DNSSEC
+</li></ol> 
+
+<span class="anchor" id="reading"></span> 
+
+
+<h2>Required Reading</h2>
+<span class="anchor" id="dns"></span> 
+<h3>Domain Name System</h3>
+
+<p>
+The Domain Name System was originally developed in 1983 as a scalable 
+way to map hostnames to IP addresses. It scales to the vast, and quickly
+ changing, range of hostnames by using a hierarchal tree structure.   
+Each piece of the hostname, seperated with periods, typically represents
+ another ordered level of the tree beginning at the root with the 
+rightmost piece. 
+The root of the tree is simply referred to as the root.   Below the root
+ are generic top level domains (edu., com., net., etc) and country code 
+top level domains (uk.,  cn.,  etc).   Each TLD further subdivides to 
+produce domains such as colostate.edu. and google.com.   These domains
+ can then further subdivide to produce domains such as cs.colostate.edu.
+  The protocol has evolved over the years, but the principles behind it 
+remain largely the same. The process is largely automated for end-users,
+ but virtually every Internet application requires some DNS lookup. 
+
+
+<span class="anchor" id="dnsoverview"></span> 
+</p><h4>DNS Overview</h4>
+
+<p>
+For this exercise, it's important to understand the basic DNS lookup 
+process.  An end-user starts by querying a DNS cache on their local 
+network.   For example, the end-user's web browser might  generate a 
+request for a specified address (e.g. "www.google.com.") and forwards it
+ to the local DNS cache. The DNS cache is a semi-public server, 
+typically maintained by the end-user's ISP or organization.  If the 
+local cache doesn't know the answer,  it recursively traverses the DNS 
+tree until it resolves the original request of the end-user.   The local
+ cache must be configured with the addresses for the DNS root servers.  
+  The cache can then ask a root server for "www.google.com.".   The root
+ does not know the answer,  but can refer the local cache to the "com." 
+servers.    The cache can then ask the a ".com" server for 
+"www.google.com.".   The ".com" server does not know the answer either, 
+ but it can refer the cache to the servers for "google.com."   Finally, 
+ the local cache queries a server for "google.com." and this server 
+returns the desired answer.   The server is called a cache because, for 
+efficiency reasons, it will store answers for a pre-determined amount of
+ time so that it can answer without consulting the tree if a query for 
+the same information comes in. 
+
+</p><ul> 
+<li><a href="http://en.wikipedia.org/wiki/Domain_Name_System" target="new">More detailed summary of DNS</a> wikipedia (optional reading)
+</li><li>Technical reference for DNS protocol, RFC #'s <a href="http://www.ietf.org/rfc/rfc1034.txt" target="new">1034</a> and <a href="http://www.ietf.org/rfc/rfc1035.txt" target="new">1035</a> RFC (optional reading)
+</li></ul> 
+
+<span class="anchor" id="dnsvulns"></span> 
+<h4>DNS Vulnerabilities</h4>
+
+<p>
+Like most protocols designed for the early internet, DNS wasn't designed
+ with any security concerns in mind. Classical DNS is done entirely via 
+plaintext messages, meaning that at third party can easily read the 
+conversation. It also does very little by way of message verification, 
+meaning that the end-user has no way of knowing if the message was 
+altered en-route or if DNS servers supplying the information are acting 
+maliciously. This leaves the service open to several well-known vectors 
+of attack which will be summarized in the following sections.
+ 
+</p><p>
+It should be noted that most classic DNS caches have been patched to 
+include some safeguards. Most commonly, they randomize the sending port 
+when making their queries to outside servers and also randomize a field 
+in the DNS protocol called the "Query ID" which was originally meant to 
+uniquely identify queries using the same port. They then verify that 
+those fields in the received response match the originals. This makes it
+ harder for a remote attacker to forge a response as the attacker must 
+guess the port and the Query ID.   However,  an attacker that can 
+observe the original query learns both the port and Query ID and can 
+trivially forge a reply.  
+
+</p><ul>
+<li><a href="http://www.cs.columbia.edu/%7Esmb/papers/dnshack.pdf" target="new">System break-ins using DNS</a> Academic paper (optional reading)
+</li><li><a href="http://tools.ietf.org/html/rfc3833" target="new">Threat Analysis of DNS</a> RFC (optional reading)
+</li></ul> 
+
+<span class="anchor" id="mitm"></span> 
+<h4>Man in the Middle</h4>
+<p>
+The man-in-the-middle attack vector is fairly common to network 
+services, and effective on virtually all communications that don't make 
+use of cryptographic encryption or authentication. In essence, the 
+attacker must position themself between the client and the server on a 
+network. From there, they can intercept messages going in either 
+direction and alter or deny them at will, violating either the integrity
+ or the availability of the service. In the context of DNS, it is most 
+common for the attacker to position themself somewhere between the 
+end-user and the relevant DNS server, then alter the DNS response to 
+supply a different IP address for the requested internet address, 
+effectively rerouting the user anywhere they want. There is very little 
+that can be done to mitigate this attack using regular DNS protocol 
+besides protecting the network path taken by the DNS messages, and it 
+will also be the form of attack highlighted by this exercise.
+</p><ul> 
+<li><a href="http://en.wikipedia.org/wiki/Man-in-the-middle_attack" target="new">Cryptographic explanation of MitM</a> wikipedia (optional reading)
+</li></ul> 
+
+<span class="anchor" id="birthday"></span> 
+<h4>Birthday Attack</h4>
+<p>
+Unlike man-in-the-middle, the Birthday attack is specific to DNS and has
+ the goal of "cache poisoning." Most DNS information remains in the DNS 
+cache for somewhere between an hour and a day after it is initially 
+requested. While this is important for efficiency (a cache lookup is 
+much less expensive in terms of time and resources than a recursive 
+query to the outside Internet), it means that if an attacker can supply 
+the cache with malicious but seemingly valid data for a common address, 
+they can redirect a potentially large number of users in the subsequent 
+time-frame. It's worth noting that there are several other forms of 
+cache poisoning that involve inserting unrequested data into other 
+fields of the DNS response, but they use a more systematic approach that
+ is completely ineffective against any up-to-date caching server. 
+
+</p><p>
+The Birthday attack uses a comparatively simple means to this end. An 
+attacker will send a query to the caching server quickly followed by a 
+response to that same query. If the response appears valid to the 
+caching sever, it will accept it and add the "poison" data into cache. 
+Virtually all caching servers have a policy of ignoring any subsequent 
+responses received for the same query. However, to make the faked 
+response seem valid, the attacker may have to do several things 
+including: spoofing the ip of the DNS server queried by the cache, 
+correctly guessing the sending port used by the cache, and correctly 
+guessing the query id used by the cache. The later two require correctly
+ guessing 16-bit numbers(both of which are ideally random) which gives 
+the attack a low, but non-negligible, chance of success. 
+
+<span class="anchor" id="kaminsky"></span> 
+</p><h4>Kaminsky Attack</h4>
+<p>
+The Kaminsky attack is a well-known derivative of the birthday attack 
+that uses various means to increase success probability, the specifics 
+of which require a fairly detailed understanding of certain edge-cases 
+in the DNS protocol.
+
+</p><ul> 
+<li><a href="http://unixwiz.net/techtips/iguide-kaminsky-dns-vuln.html" target="new">Illustrated guide for Kaminsky Attack</a> (recommended reading)
+</li></ul> 
+
+<span class="anchor" id="publickey"></span> 
+<h4>Public Key Cryptography</h4>
+<p>
+Public key cryptography is built on the concept of a "one-way", also 
+called "asynchronous,"  function. Mathematically, 
+it's trivial to get from point A to point B, but extremely difficult if 
+not impossible to get from point B back to point A.
+The asynchronous function is essential because it allows for 
+cryptography without the secure exchange of a shared key ahead of time. 
+ 
+
+</p><p>
+In the public key system, a user generates what's referred to as an "asynchronous key pair." This pair includes a
+private key that is very hard to derive without previously knowing it, and a public key which is freely distributed
+to other users. The private key, by virtue of the chosen cryptographic method, can be used to sign any message. The owner
+of the private key would then distribute the message and the generated signature. Any user with the public key, message, 
+and signature can then verify that the signature matches the message and was generated by the private key. 
+
+</p><ul> 
+<li><a href="http://en.wikipedia.org/wiki/Public-key_cryptography" target="new">Public Key Cryptography</a> wikipedia (optional reading)
+</li></ul> 
+
+<span class="anchor" id="verification"></span> 
+<h4>Cryptographic Authentication</h4>
+<p>
+Cryptographic Authentication refers to the process of generating a 
+digital signature(similar to a hash) for a given message. An end-user 
+can use the message, signature, and public key of the sender to verify 
+that the message hasn't been changed and was indeed signed by the sender
+ (as described in the previous section). Provided that the public-key is
+ trusted, either because it was also signed, by the previous DNS server 
+in the chain, or was for a root server, the end-user has cryptographic 
+proof of the sender and data-integrity. 
+
+</p><ul> 
+<li><a href="http://en.wikipedia.org/wiki/Digital_signature" target="new">Digital Signatures</a> wikipedia (optional reading)
+</li></ul> 
+
+<span class="anchor" id="dnssec"></span> 
+<h4>Domain Name System Security Extensions(DNSSEC)</h4>
+<p>
+DNSSEC is an enhancement to the DNS protocol that integrates 
+cryptographic authentication into DNS messages. DNSSEC assures data 
+integrity, mitigating man in the middle and cache-poisoning attacks 
+using a "chain of trust." In essence, you trust the response you get 
+from each server if it has been vouched for by the server before it in 
+the lookup.  It's still necessary to trust the supplied public key for 
+the root DNS servers, but there are various political and administrative
+ procedures in place to ensure their trustability. 
+
+</p><p>
+For this exercise, you'll be required to implement DNSSEC for a BIND9 
+DNS caching server. While the installation itself is fairly 
+straightforward, you should also understand the basic cryptography in 
+use, explained in the previous section, to avoid pitfalls.
+
+</p><ul> 
+<li><a href="http://www.root-dnssec.org/" target="new">Information about DNSSEC for the root zones</a> (optional reading)
+</li><li><a href="https://www.digitalocean.com/community/tutorials/how-to-setup-dnssec-on-an-authoritative-bind-dns-server-2" target="new">BIND9 Administrator's Guide</a> (DNSSEC section required)
+</li><li>DNSSEC technical specifications, RFC #'s <a href="http://www.ietf.org/rfc/rfc4033.txt" target="new">4033</a>, <a href="http://www.ietf.org/rfc/rfc4034.txt" target="new">4034</a>, and <a href="http://www.ietf.org/rfc/rfc4035.txt" target="new">4035</a> (optional reading)
+</li></ul> 
+
+<span class="anchor" id="arp"></span> 
+<h4>Address Resolution Protocol(ARP)</h4>
+<p>
+ARP is another protocol developed for basic networking.  ARP is 
+important to this exercise because you'll be using a flaw in the 
+protocol to position yourself for the man-in-the-middle attack. 
+
+ARP is used to to resolve a network layer address (e.g., IP address) to a
+ link layer address (e.g., MAC address). When a host wishes to send an 
+IP packet to a remote host, it first creates the IP packet. However, the
+ hardware in the network interface must encapsulate the packet in a link
+ layer frame (commonly Ethernet) before sending the data out on the 
+wire. In order to assign the frame to the correct destination address, 
+the local host must use ARP to determine which hardware address 
+corresponds to the next hop for the IP packet. This involves sending 
+special ARP messages called <em>ARP Requests</em> on the local Ethernet and receiving replies from hosts that have the answer. 
+ 
+</p><p> 
+For example, the host <tt>10.10.10.20</tt> needs to send data to the 
+Internet. In order to reach the  Internet, it must send the data through
+ its default gateway, which is configured with IP address <tt>10.10.10.10</tt>. The sending host <tt>10.10.10.20</tt> needs to know what  Ethernet address <tt>10.10.10.10</tt> has in order to put the correct MAC address in the  frame header. In order to discover this, <tt>10.10.10.20</tt> needs to broadcast an ARP request to all Ethernet nodes: 
+ 
+</p><p> 
+ 
+</p><pre>arp who-has 10.10.10.10 tell 10.10.10.20
+ 
+ 
+</pre> 
+<p> 
+... Hopefully, 10.10.10.20 will receive a reply like: 
+ 
+</p><p> 
+ 
+</p><pre>arp reply 10.10.10.10 is-at 2e:2f:30:31:32:33
+ 
+</pre> 
+<p> 
+... from some host that knows the answer. Host 10.10.10.20 will update 
+its ARP tables associating the IP 10.10.10.10 with the MAC address 
+2e:2f:30:31:32:33 and won't ask again for some time. 
+</p><ul> 
+
+<li><a href="http://en.wikipedia.org/wiki/MAC_address" target="new">Detailed information on MAC addresses</a> wikipedia (optional reading)
+</li><li><a href="http://en.wikipedia.org/wiki/Address_Resolution_Protocol" target="new">Detailed information on ARP</a> wikipedia (optional reading)
+</li></ul> 
+
+
+<span class="anchor" id="spoof"></span>
+<h4>ARP Spoofing</h4>
+<p> 
+ARP Spoofing is a technique for redirecting traffic that can allow an 
+arbitrary interface on an otherwise unsecured switched network to 
+receive traffic that would not normally be sent to it. 
+ 
+</p><p> 
+ 
+</p><p> 
+ARP Spoofing relies on the decentralized, unauthenticated, and 
+completely trusting nature of ARP to succeed. In ARP Spoofing, the 
+attacker (or spoofer) tells specific hosts or entire networks that <em>its MAC address</em>
+ should be associated with the victim's IP address, rather than the 
+correct MAC to IP mapping. This is commonly used to tell network hosts 
+that an <em>attacker</em> is the default gateway instead of the real default gateway.  The spoofer keeps the victim's <em>real</em> MAC address in its ARP table, and prepares to receive data from network hosts. 
+ 
+</p><p> 
+When an attacker pretends to be the default gateway for a network, all 
+hosts that received the bogus ARP messages now believe that the <em>spoofer's</em>
+ MAC should be inserted into any Ethernet frame destined for the 
+Internet or another IP subnet instead of the real default gateway's MAC 
+address. <strong>This is especially meaningful</strong> because Ethernet switches <em>build their own ARP tables</em> in order to efficiently direct traffic and avoid broadcasting like a hub. This means that <em>Ethernet switches will be fooled in addition to the remote hosts</em>. As a result, switches will direct default gateway-bound traffic to the <em>spoofer</em>, not the <strong>real</strong> default gateway. Furthermore, a spoofing host that wishes to remain undetected can <em>rewrite and forward the Ethernet frames to the real default gateway</em>.
+ This method silently maintains the victim's connections while routing 
+them conveniently under the nose of the sniffer. In this way, ARP 
+Spoofing acts as a kind of network reconfiguration at the data link 
+layer and highlights Ethernet's dependence on ARP. 
+ 
+</p><p> 
+At this point, the spoofing host has almost total control of the network
+ traffic and can see and sniff arbitrary hosts' data with the use of a 
+promiscuous interface and packet sniffing software. ARP Spoofing does 
+slow down network traffic because of the additional hops and 
+procesessing involved, but the clever attacker will target only the 
+hosts she wants to affect, rather than the whole network. ARP Spoofing 
+also requires multiple spoofing actions to maintain the tables in their 
+bogus state, but this is not a difficult burden to bear. Furthermore, 
+the careful spoofer can restore the ARP tables of the network before 
+quitting, resulting in minimal network disruption due to the spoofing. 
+ 
+</p><p> 
+While there are strategies against ARP Spoofing, notably ARP monitoring, fixed ARP tables and <a class="http" href="http://en.wikipedia.org/wiki/VLAN">VLAN</a>s,
+ these are expensive in terms of maintenance, network design, and may 
+require specialized hardware. Because of this, most networks in use 
+today are at least partially vulnerable to ARP Spoofing attacks. 
+ 
+</p><p> 
+Being the "man in the middle" gives you the opportunity to perform the DNS manipulation discussed earlier. 
+
+</p><ul> 
+<li><a href="http://en.wikipedia.org/wiki/ARP_spoofing" target="new">Alternate source on ARP spoofing</a> Wikipedia (optional reading)
+</li></ul>
+
+
+<span class="anchor" id="ettercap"></span> 
+<h4>Ettercap</h4>
+<p> 
+<a class="http" href="http://en.wikipedia.org/wiki/Ettercap_%28computing%29">Ettercap</a> is a powerful tool for network analysis and security cracking. Ettercap has two main strengths: 
+ 
+</p><p> 
+Finally we need a few last tools for the exercise.   Ettercap is capable of performing <a class="http" href="http://en.wikipedia.org/wiki/Man-in-the-middle_attack">man-in-the-middle</a>
+ attacks on many protocols, including ARP and DNS. Ettercap is capable 
+of "filtering" packets, where it intercepts, changes, and resends 
+packets on the fly. This could be as simple as changing all occurances 
+of the word "buy" to "sell" in all web traffic, or as complex as 
+exchanging the encryption keys in a secure transmission. 
+ 
+</p><p> 
+Secondly, Ettercap is capable of fully automating ARP spoofing (also 
+known as ARP poisoning) which is a technique whereby a computer on a 
+switched network is capable of forcing other hosts to send their data to
+ the attacker rather than the actual network gateway or destination. 
+This allows an attacker to force arbitrary users to send their data to 
+him first -- after which he can choose to send the traffic on, change 
+it, or throw it away -- all without any privileged position on the 
+network other than the complete control of one workstation. 
+ 
+</p><p> 
+By the inclusion of ARP spoofing, expressive filters, and 
+man-in-the-middle attacks, Ettercap is a one-stop-shop for many network 
+attacks. Where such attacks used to require specialized software 
+development (often customized for a particular network or attack), 
+Ettercap is a user-friendly tool that makes network attacks incredibly 
+simple. 
+ 
+</p><p> 
+
+</p><ul> 
+<li><a href="http://linux.die.net/man/8/ettercap" target="new">Ettercap man page</a> (required reading)
+</li></ul>
+
+<span class="anchor" id="tcp"></span>
+<h4>TCPDUMP</h4>
+<p>
+To examine the MAC addresses on packets in this exercise and possibly 
+the contents of the packets themselves, we recommend you use a 
+command-line tool called TCPDUMP. It's a very common and useful tool for
+ looking at network traffic so you'll want to get acquainted with the 
+man-page if you aren't already.
+</p><ul> 
+<li><a href="http://www.tcpdump.org/tcpdump_man.html" target="new">tcpdump man page</a> (required reading)
+</li></ul> 
+
+<span class="anchor" id="dig"></span> 
+<h4>DNS lookup utility(dig)</h4>
+<p>
+dig is a standard command line tool for making DNS queries (typically 
+for network debugging purposes). In this exercise you'll be using it 
+both to simulate DNS queries from an internet browser and to debug your 
+configuration if necessary. You should be familiar with its standard 
+Unix syntax.
+</p><ul> 
+<li><a href="http://linux.die.net/man/1/dig" target="new">dig man page</a> (required reading)
+</li></ul>
+
+<span class="anchor" id="intro"></span> 
+<h2>Introduction</h2>
+
+
+<p>
+For the first portion of the exercise, you'll take the position of an 
+attacker(or possibly a network administrator doing penetration testing 
+on their network). You'll be using a malicious box on the same switched 
+LAN as the end-user, and your goal will be to supply the end-user with a
+ false IP when they query for www.google.com. You'll also have access to
+ box representing the end-user in order to simulate the query and 
+observe the response, but you shouldn't access any other boxes before 
+the second portion of the exercise.
+
+</p><p>
+For the second portion of the exercise, you'll take the position of a 
+network administrator working to addresses DNS vulnerabilities in their 
+network. You'll have access to the caching server and authoritative 
+nameserver and will be charged with implementing DNSSEC for 
+www.google.com. You'll also need to verify that it is no longer 
+susceptible to a man-in-the-middle data manipulation attack.
+
+<span class="anchor" id="assignment"></span> 
+</p><h2>Assignment Instructions</h2>
+
+<span class="anchor" id="ni"></span> 
+<h3>Network Information</h3>
+
+<p>
+The network in this exercise is designed to simulate an end-user and a 
+recursive DNS system as simply as possible. To that end, there is a 
+single authoritative DNS server which handles all the levels in the 
+setup (root, com., google.com.). The DNS caching server has a direct 
+line to the authoritative DNS server and shares a switch with the 
+end-user and attacker on it's other interface. Ordinarily, when the 
+end-user makes a query, it will be sent to the caching server which then
+ traverses the small DNS tree in the setup by making several queries to 
+the authoritative server. Once it gets the required response, it 
+forwards it on to the end-user. The caching server also stores the 
+answer for a small (10 seconds) but easily observable amount of time. For
+ more detailed information, it's easiest to consult the actual 
+simulation once you've set it up.
+
+
+<span class="anchor" id="setup"></span>
+</p><div class="level3"><h3>Setup</h3>
+
+<ol>
+	<ol type="1"><li><p />If you don't have an account, follow the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/">here</a>.
+</li><li>Create an instance of this exercise by following the instructions <a href="https://docs.sphere-testbed.net/experimentation/classes/#working-on-assignments">here</a>, using <font color=red>dnsmitm</font> as Lab name.  Your topology will look like below:<p><img src="topo.png">.
+</li><li>After setting up the lab, access your nodes. <p /></ol></ol><p />
+
+</p><p>
+The majority of this exercise is easiest to complete simply via command line on the relevant virtual machines.
+
+</p></div>
+
+<span class="anchor" id="tasks"></span>
+<div class="level3">
+  <h3>Tasks</h3>
+  <div class="ai">
+<p />
+<img src="alert.png" />Always follow your teacher's guidelines around the use of AI. If use of AI is permitted for this exercise submit <b>additional</b> materials as indicated below for the <b>AI-option</b>.
+</div>
+<div class="ai">
+    <b>AI-option:</b> If you use AI to <b>run the commands or you prompt it with questions in this exercise</b>, you must provide <i>hand-written</i> answers to ALL the questions noted in the rest of this exercise. You can write the answers on a piece of paper, take a picture of that paper and then add the picture to your submission, in a separate "AI" folder. Also note in that folder:
+            <ol type="a">
+              <li>Which AI you have used? How many tokens did you spend overall? How much time did you spend overall?
+              <li>How many times did you have to prompt the AI to get the final answer? Did you let it run commands for you or just suggest commands and answers
+              <li>Submit all your prompts. Prompts do not have to be hand-written. You can copy-paste the prompts and the results into a file called <tt>prompts.txt</tt> in the "AI" folder.
+	    </ol>
+</div>
+
+
+<span class="anchor" id="p1"></span>
+<h4>Part 1: Understanding DNS </h4>
+
+<p> Login to the <tt>client</tt> machine and use the dig command to lookup the IPv4 address of <tt>www.google.com</tt> using the command "<tt>dig www.google.com A</tt>". 
+
+</p><ol>
+<li>  The dig command sent a DNS query to some DNS server and received a
+ response from that server.  What is the IP address that server?
+</li><li>  The DNS response includes a status.   What was the status of the response?
+</li><li>  The response identified the IP address of www.google.com.   What is the reported IP address of www.google.com?
+</li><li>   How long will the www.google.com IPv4 address be cached?
+</li><li>   The response listed the nameserver that is authoritative 
+for www.google.com.    What is the authoritative name server for 
+google.com?
+</li><li>   Finally, the response listed the IPv4 address for the 
+google.com nameserver.    For each such server  
+what is its IPv4 address?
+</li></ol>
+
+
+<div class="infobox"> 
+<p> 
+<img src="idea.png"> 
+ 
+Be sure to issue the dig command from the client machine.  The IPv4 
+addresses associated with this exercise begin with 10.   If you are 
+seeing other IPv4 address, then you may be querying the  real DNS tree 
+rather than the one in the exercise. While this is harmless and 
+interesting in and of itself,  the later steps assume you are using the 
+DNS tree created in this exercise.
+ 
+</p></div> 
+
+<span class="anchor" id="p2"></span> 
+
+<p>
+</p><h4>Part 2: The Big Picture</h4>
+
+<p>
+Before doing any ARP spoofing, we want to understand the network topology. 
+Use the topology visualization in this document and use <tt>arp</tt> and <tt>ifconfig</tt> commands to detect MAC and IP addresses for each machine.
+
+</p><p>
+</p><ol start="7">
+<li>State the source MAC and IP addresses as well as destination MAC and
+ IP addresses for a packet going from the client to the cache</li>
+<li>Does the packet travel through the attacker box?</li>
+<li>State the source MAC and IP addresses as well as destination MAC and
+ IP addresses for a packet going from the cache to the authoritative 
+server</li>
+<li>From <b>cache</b> ping <b>auth</b>. Does the packet travel through the attacker box? You can test this by running tcpdump on <b>attacker</b></li>
+</ol>
+
+<p>
+<span class="anchor" id="p3"></span> 
+
+</p><p>
+
+</p><h4>Part 3: Using Ettercap for ARP spoofing</h4>
+<p>
+</p><div class="warning"> 
+<p> 
+<img src="alert.png"> 
+<strong>Warning!</strong> <strong>Do not ARP Poison any control interface (172.30.x.x)! Check which interface on attacker node has 10.x.x.x address and use that interface with -i option with ettercap, to make sure your poisoning stays on experimental network.</strong> 
+</p></div> 
+
+<p>
+Login to the <b>attacker</b> machine.   Using ettercap your 
+objective is to poison <b>cache</b> and <b>auth</b> so that <b>attacker</b> is in their middle. Once you accomplish this record the
+following:
+ 
+</p><ol start="11">
+<li>The command you used</li>
+<li>What each option in the command means</li>
+<li>State the source MAC and IP addresses as well as destination MAC and
+ IP addresses for a packet going from the cache to the authoritative server</li>
+<li>From <b>cache</b> ping <b>auth</b>. On <b>attacker</b> node run tcpdump. Does the packet travel through the attacker box?</li>
+<li>If your answers to parts 2.3 and 3.3 differ, explain why</li>
+</ol>
+
+
+<p>
+  <span class="anchor" id="p4"></span> 
+</p><h4>Part 4: Using Bettercap for DNS spoofing</h4>
+</p><p>
+Now that you can ARP spoof on the network, your goal is to actually 
+filter DNS messages returning to the end-user and replace the IP for 
+"www.google.com." with an IP of your choosing (say the attacker: 
+10.1.2.4). For this we will use <b>bettercap</b> since <b>ettercap's</b>
+      DNS spoofing can no longer fool modern DNS resolver software.
+
+<p>Steps on <b>attacker</b> node:</p>
+<ul> 
+  <li>Run <tt>docker pull bettercap/bettercap</tt>
+  <li>Discover the interface for 10.1.2.4 address using <tt>ifconfig</tt>, say ethX
+  <li>Run <tt>docker run -it --privileged --net=host bettercap/bettercap -iface ethX</tt>. This will open bettercap's UI.
+  <li>Set dns.spoof module to spoof *.google.com and activate it. You can find out how to do that by reading bettercap's documentation <a href="https://www.bettercap.org/modules/ethernet/spoofers/dnsspoof/">here</a>. <b>Wait at least five minutes</b>
+</ul>
+
+
+<p>On <b>client</b> node:
+  <ol start="16">
+	<li>Run <tt>dig www.google.com A</tt> and record the output
+	<li>Record bettercap's commands you have used
+	<li>What malicious things could an attacker do by changing the IP address in a DNS response going to the client?
+</li></ol></p> 
+
+
+</p><p>
+<span class="anchor" id="p5"></span> 
+
+</p><p>
+
+</p><h4>Part 5: Implementing DNSSEC</h4>
+<p>
+  The final task to prevent this type of attack by cryptographically signing the DNS data.   Login to <tt>auth</tt> and follow instructions <a href="https://www.digitalocean.com/community/tutorials/how-to-setup-dnssec-on-an-authoritative-bind-dns-server-2">here</a> to set up DNSSEC. <b>IMPORTANT: Your zone file is already present at /etc/bind/zones/db.google.com. This is the file you should sign.</b>
+
+  Then restart <tt>bind</tt> and try on the <b>auth</b> machine: <tt>dig +dnssec  www.google.com A</tt>. You should get a signed response.
+
+<P>On the <b>cache</b> machine, add the public zone signing key (ZSK) to the list of trust-anchors for the cache. An example how to do this is <A HREF="https://benctechnicalblog.blogspot.com/2011/01/dnssec-configuring-my-resolver.html">here</A> You can use <tt>dig google.com dnskey</tt> on <tt>auth</tt> to learn what keys to add to the list. You must also add lines to <tt>/etc/bind/named.conf.options</tt>  that tell it to use dnssec (same ones as in the previous step). Then restart <tt>bind</tt> on <b>cache</b> and run <tt>dig +dnssec  www.google.com A</tt>. You should get a signed response.
+
+<P>Finally, return to the <tt>client</tt> machine and use the command "<tt>dig +dnssec  www.google.com A</tt>" to lookup the IPv4 address for <tt>www.google.com</tt>. You should get a signed response, with AD bit set.
+
+<P>For part 5,  turn in:
+ <ol start="19">
+<li>The signed response obtained on the <b>client</b> machine
+<li>Detailed description of all the steps you took to implement DNSSEC. Make sure to list all commands you typed and all configuration changes you made.
+</ol>
+<div class="infobox"> 
+<p> 
+<img src="idea.png">A properly DNSSEC verified dig will include an "ad" bit which shows up in the tag field of dig output. 
+</p></div> 
+ 
+<p> 
+
+You may want to run the attack again now that your network is DNSSEC 
+enabled. You'll notice that while bettercap is no longer able to 
+successfully implant an IP, it can still cause denial of service by simply dropping all traffic. 
+
+
+</p></div>
+<span class="anchor" id="glitches"></span>
+
+<div class="level3">
+<h3>What can go wrong</h3>
+<p>Specific problems:
+ 
+</p><ul> 
+<li>Make sure you use <tt>sudo</tt>. Most of the commands above require root privileges.
+<li>If you type a command and the system cannot find it run <tt>locate</tt> commandname to find where it is.
+<li>If <tt>ettercap</tt> doesn't seem to be working, make sure you are poisoning 
+the correct interface. You should be poisoning the 10.x.x.x interface.</li> 
+<li>Signing of the zone file must be run in <tt>/etc/bind/zones</tt> directory.
+<li>Bind is really picky about the syntax of its configuration files. To detect where a problem may be if bind refuses to start use <tt>named-checkconf</tt> tool.
+  <li>If AD bit is not set check that: (1) you are running the command on <tt>client</tt> node and that you have added trust anchors on <tt>cache</tt>. These <a href="https://bind9.readthedocs.io/en/v9.18.4/chapter7.html">guidelines</a> may be useful (look for trust-anchor). The key you want to add should be from the <tt>auth</tt> machine (the public zone signing key, the shorter one) and it goes into <tt>named.conf.options</tt>. Do not forget to restart <tt>named</tt> service.
+</ul> 
+
+</div>
+
+<span class="anchor" id="submission"></span> 
+<h2>Submission Instructions</h2>
+
+Submit a .pdf file to your instructor containing your answers to:
+<ol>
+<li>Part 1 Questions 1-6</li>
+<li>Part 2 Questions 7-10</li>
+<li>Part 3 Questions 11-15</li>
+<li>Part 4 Questions 16-18</li>
+<li>Part 5 Questions 19-20</li>
+</ol>
+
+</div>
+
+</body></html>
